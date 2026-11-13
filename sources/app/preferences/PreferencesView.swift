@@ -18,25 +18,24 @@ struct PreferencesView: View {
                 }
                 if settings.shortcutsEnabled {
                     row("Toggle Kapp", nested: true) {
-                        ShortcutRecorder(settings: settings).frame(width: 160, height: 28)
+                        ShortcutRecorder(settings: settings).frame(width: 160, height: 24)
                     }
                 }
                 row("Microphone recording") { toggle($settings.captureMicrophone) }
                 if settings.captureMicrophone {
                     row("Input device", nested: true) {
-                        Picker("Input device", selection: Binding(get: { settings.microphoneDeviceID ?? "" }, set: { settings.microphoneDeviceID = $0.isEmpty ? nil : $0 })) {
-                            Text("System Default").tag("")
-                            ForEach(settings.audioDevices) { device in Text(device.name).tag(device.id) }
+                        let devices = settings.audioDevices
+                        let selected = devices.firstIndex { $0.id == settings.microphoneDeviceID }.map { $0 + 1 } ?? 0
+                        PreferencesSelect(label: "Input device", titles: ["System Default"] + devices.map(\.name), selected: selected, width: 208) { index in
+                            settings.microphoneDeviceID = index == 0 ? nil : devices[index - 1].id
                         }
-                        .labelsHidden().frame(width: 208)
                     }
                 }
                 row("System audio") { toggle($settings.captureSystemAudio) }
                 row("Capture frame rate") {
-                    Picker("Capture frame rate", selection: $settings.captureFrameRate) {
-                        Text("30 FPS").tag(30)
-                        Text("60 FPS").tag(60)
-                    }.labelsHidden().frame(width: 112)
+                    PreferencesSelect(label: "Capture frame rate", titles: ["30 FPS", "60 FPS"], selected: settings.captureFrameRate == 30 ? 0 : 1, width: 112) {
+                        settings.captureFrameRate = $0 == 0 ? 30 : 60
+                    }
                 }
                 row("Start automatically") {
                     toggle(Binding(get: { settings.startAtLogin }, set: { settings.setStartAtLogin($0) }))
@@ -44,6 +43,7 @@ struct PreferencesView: View {
                 if settings.loginRequiresApproval {
                     row("Allow Kapp in Login Items", nested: true) {
                         Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
+                            .buttonStyle(KapPreferencesButtonStyle())
                     }
                 }
                 HStack(spacing: 16) {
@@ -55,6 +55,7 @@ struct PreferencesView: View {
                     }
                     Spacer(minLength: 12)
                     Button("Choose…", action: chooseDirectory)
+                        .buttonStyle(KapPreferencesButtonStyle())
                 }
                 .padding(.horizontal, 24).padding(.vertical, 20)
             }
@@ -99,6 +100,55 @@ struct PreferencesView: View {
         panel.beginSheetModal(for: window) { response in
             if response == .OK, let directory = panel.url { settings.exportDirectory = directory }
         }
+    }
+}
+
+// Match Kap's compact controls while retaining native menu interaction.
+private struct PreferencesSelect: View {
+    let label: String
+    let titles: [String]
+    let selected: Int
+    let width: CGFloat
+    let onSelect: (Int) -> Void
+    @State private var anchor = NSView()
+
+    var body: some View {
+        Button {
+            EditorOptionsMenu.present(titles: titles, selected: selected, anchoredTo: anchor, onSelect: onSelect)
+        } label: {
+            HStack(spacing: 8) {
+                Text(titles[selected]).lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.down").font(.system(size: 9))
+            }
+            .padding(.horizontal, 8)
+            .frame(width: width, height: 24)
+            .modifier(KapPreferencesControlBackground())
+        }
+        .buttonStyle(.plain)
+        .background(EditorMenuAnchor(view: anchor).allowsHitTesting(false))
+        .accessibilityLabel(label)
+        .accessibilityValue(titles[selected])
+    }
+}
+
+private struct KapPreferencesControlBackground: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background(colorScheme == .dark ? .white.opacity(0.1) : .white, in: .rect(cornerRadius: 4))
+            .overlay { RoundedRectangle(cornerRadius: 4).strokeBorder(colorScheme == .dark ? .clear : Color(nsColor: .separatorColor), lineWidth: 1) }
+    }
+}
+
+private struct KapPreferencesButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 12)
+            .frame(minWidth: 72, minHeight: 24, maxHeight: 24)
+            .modifier(KapPreferencesControlBackground())
+            .opacity(configuration.isPressed ? 0.65 : 1)
     }
 }
 
