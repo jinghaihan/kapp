@@ -40,7 +40,7 @@ struct EditorView: View {
                             let index = custom ? $0 - 1 : $0
                             model.setWidth(Int((model.sourceSize.width * Double(percentages[index]) / 100).rounded()))
                         }
-                    } label: { selectorLabel("\(percentage)%", width: 60) }
+                    } label: { selectorLabel("\(percentage)%", width: 68) }
                     .buttonStyle(.plain)
                     .background(EditorMenuAnchor(view: percentageAnchor).allowsHitTesting(false))
                     .accessibilityLabel("Output Scale")
@@ -125,8 +125,10 @@ struct EditorView: View {
     }
 
     private func selectorLabel(_ text: String, width: CGFloat) -> some View {
-        HStack {
+        HStack(spacing: 4) {
             Text(text)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Spacer(minLength: 4)
             Image(systemName: "chevron.down").font(.system(size: 9))
         }
