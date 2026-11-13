@@ -22,7 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             shortcut = try RecordingShortcut { [weak self] in self?.toggleRecording() }
         } catch { showError(error) }
-        Task { await model.selectArea() }
     }
 
     private func observeRecordingState() {
