@@ -9,7 +9,14 @@ struct EditorView: View {
                 .frame(minWidth: 600, minHeight: 340)
             Divider()
             HStack {
-                Text("MP4")
+                Picker("Format", selection: $model.format) {
+                    ForEach(ExportFormat.allCases) { format in
+                        Text(format.rawValue).tag(format)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+                .disabled(model.isExporting)
                 if let range = model.range {
                     Text("\(range.duration.formatted(.number.precision(.fractionLength(1)))) s")
                         .foregroundStyle(.secondary)

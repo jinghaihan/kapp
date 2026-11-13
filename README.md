@@ -21,8 +21,10 @@ audio options. ⌘⇧5 starts area selection or stops the current recording glob
 Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
 
 Stopping opens a native player window. Use Trim (⌘T) to adjust both ends, then
-Copy or Export the selected MP4. Mute removes audio from the exported file.
-The original recording is kept. GIF export is not implemented yet.
+choose MP4 or GIF, then Copy or Export. Mute removes audio from MP4 exports.
+GIFs loop at 15 fps, with a maximum dimension of 960 pixels. Copy provides the
+exported file and, for GIFs, animated image data to compatible apps.
+The original recording is kept. Cancelling an export leaves existing files intact.
 
 ## Structure
 
@@ -30,6 +32,8 @@ The original recording is kept. GIF export is not implemented yet.
 Sources/
   App/                  App entry, recording workflow and native controls
     Selection/          Area drawing, resize/move, system picker and border
+    Editor/             Native video player and trimming window
+    Export/             MP4/GIF processing and clipboard representations
   Recording/            ScreenCaptureKit streams, audio and MP4 writing
 Tests/
   AppTests/             Selection coordinate conversion

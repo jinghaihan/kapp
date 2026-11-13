@@ -14,8 +14,17 @@ final class EditorModel {
     private(set) var isExporting = false
     private(set) var copied = false
     var canTrim = false
+    var format: ExportFormat = .mp4 {
+        didSet {
+            player.isMuted = muted || format == .gif
+            copied = false
+        }
+    }
     var muted = false {
-        didSet { player.isMuted = muted }
+        didSet {
+            player.isMuted = muted || format == .gif
+            copied = false
+        }
     }
     var errorMessage: String?
 
@@ -29,6 +38,7 @@ final class EditorModel {
     }
 
     var canExport: Bool { range != nil && !isExporting && !isTrimming }
+    private var filename: String { source.deletingPathExtension().lastPathComponent + "." + format.fileExtension }
 
     func load() async {
         do {
@@ -65,8 +75,8 @@ final class EditorModel {
     func save() async {
         guard canExport, let window = playerView?.window else { return }
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.mpeg4Movie]
-        panel.nameFieldStringValue = source.lastPathComponent
+        panel.allowedContentTypes = [format.contentType]
+        panel.nameFieldStringValue = filename
         panel.directoryURL = .downloadsDirectory
         guard await panel.beginSheetModal(for: window) == .OK, let destination = panel.url else { return }
         beginExport(to: destination, copy: false)
@@ -77,7 +87,7 @@ final class EditorModel {
         let directory = URL.cachesDirectory.appending(path: "Kapp/Clipboard/\(UUID().uuidString)", directoryHint: .isDirectory)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            beginExport(to: directory.appending(path: source.lastPathComponent), copy: true)
+            beginExport(to: directory.appending(path: filename), copy: true)
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -91,16 +101,22 @@ final class EditorModel {
         copied = false
         player.pause()
         let muted = muted
+        let format = format
         exportTask = Task {
             // Export beside the destination, then replace it only after successful completion.
-            let staging = destination.deletingLastPathComponent().appending(path: ".kapp-\(UUID().uuidString).mp4")
+            let staging = destination.deletingLastPathComponent().appending(path: ".kapp-\(UUID().uuidString).\(format.fileExtension)")
             defer {
                 try? FileManager.default.removeItem(at: staging)
                 isExporting = false
                 exportTask = nil
             }
             do {
-                try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, to: staging)
+                switch format {
+                case .mp4:
+                    try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, to: staging)
+                case .gif:
+                    try await GIFExporter.export(source: source, range: range, to: staging)
+                }
                 try Task.checkCancellation()
                 if FileManager.default.fileExists(atPath: destination.path()) {
                     _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
@@ -108,10 +124,7 @@ final class EditorModel {
                     try FileManager.default.moveItem(at: staging, to: destination)
                 }
                 if copy {
-                    NSPasteboard.general.clearContents()
-                    guard NSPasteboard.general.writeObjects([destination as NSURL]) else {
-                        throw ExportError.clipboardFailed
-                    }
+                    try RecordingClipboard.copy(file: destination, format: format)
                     copied = true
                 }
             } catch {

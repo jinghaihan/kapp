@@ -71,7 +71,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSTool
     private func observeControls() {
         withObservationTracking {
             let canTrim = model.canTrim && model.range != nil && !model.isExporting && !model.isTrimming
-            let canMute = !model.isExporting
+            let canMute = !model.isExporting && model.format == .mp4
             let muted = model.muted
             trimButton?.isEnabled = canTrim
             muteButton?.isEnabled = canMute
