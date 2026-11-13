@@ -8,15 +8,22 @@ import UniformTypeIdentifiers
 @MainActor
 @Suite(.serialized)
 struct GIFExporterTests {
-    @Test func respectsTheRequestedSizeAndFrameRate() async throws {
+    @Test(arguments: [10, 60]) func respectsTheRequestedSizeAndFrameRate(frameRate: Int) async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let source = try await RecordingFixture.make(in: directory)
         let destination = directory.appending(path: "scaled.gif")
         try await GIFExporter.export(source: source, range: ClipRange(start: 0, end: 0.5),
-            settings: VideoExportSettings(width: 32, height: 24, frameRate: 10), to: destination)
+            settings: VideoExportSettings(width: 32, height: 24, frameRate: frameRate), to: destination)
         let imageSource = try #require(CGImageSourceCreateWithURL(destination as CFURL, nil))
-        #expect(CGImageSourceGetCount(imageSource) == 5)
+        #expect(CGImageSourceGetCount(imageSource) == frameRate / 2)
+        var duration = 0.0
+        for index in 0..<CGImageSourceGetCount(imageSource) {
+            let properties = try #require(CGImageSourceCopyPropertiesAtIndex(imageSource, index, nil) as? [String: Any])
+            let timing = try #require(properties[kCGImagePropertyGIFDictionary as String] as? [String: Any])
+            duration += try #require(timing[kCGImagePropertyGIFUnclampedDelayTime as String] as? Double)
+        }
+        #expect(abs(duration - 0.5) < 0.011)
         let frame = try #require(CGImageSourceCreateImageAtIndex(imageSource, 0, nil))
         #expect(frame.width == 32 && frame.height == 24)
     }

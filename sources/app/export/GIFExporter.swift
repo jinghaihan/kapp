@@ -16,7 +16,7 @@ enum GIFExporter {
         generator.maximumSize = settings?.size ?? CGSize(width: 960, height: 960)
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
-        let fps = Double(min(50, settings?.frameRate ?? 15))
+        let fps = Double(settings?.frameRate ?? 15)
         let count = max(1, Int(ceil(range.duration * fps)))
         guard let output = CGImageDestinationCreateWithURL(destination as CFURL, UTType.gif.identifier as CFString, count, nil) else {
             throw ExportError.cannotEncodeGIF
@@ -29,7 +29,7 @@ enum GIFExporter {
                 let time = CMTime(seconds: range.start + Double(index) / fps, preferredTimescale: 600)
                 let frame = try await generator.image(at: time).image
                 // GIF delays use hundredths. Distribute rounding across frames to preserve duration.
-                let endHundredths = max(previousHundredths + 2, Int((min(Double(index + 1) / fps, range.duration) * 100).rounded()))
+                let endHundredths = max(previousHundredths + 1, Int((min(Double(index + 1) / fps, range.duration) * 100).rounded()))
                 let delay = Double(endHundredths - previousHundredths) / 100
                 previousHundredths = endHundredths
                 autoreleasepool {
