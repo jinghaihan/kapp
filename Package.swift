@@ -10,7 +10,8 @@ let package = Package(
         .executableTarget(
             name: "Kapp",
             dependencies: ["KappRecording"],
-            path: "Sources/App"
+            path: "Sources/App",
+            resources: [.process("Assets")]
         ),
         .testTarget(
             name: "RecordingTests",

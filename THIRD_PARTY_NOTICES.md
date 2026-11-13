@@ -8,3 +8,11 @@ Copyright (c) 2026 Joshua Sattler and the BetterCapture contributors.
 The original MIT license is retained in [LICENSE](LICENSE).
 
 Kapp currently imports selected source files only. It is not a GitHub fork.
+
+# Kap
+
+Capture toolbar layout, SVG icons and editor control styling are adapted from
+[Kap](https://github.com/wulkano/Kap). Copyright (c) Wulkano
+hello@wulkano.com (https://wulkano.com).
+
+The original MIT license is retained in [ThirdPartyLicenses/Kap.txt](ThirdPartyLicenses/Kap.txt).

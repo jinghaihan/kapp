@@ -58,6 +58,7 @@ final class AreaSelectionOverlay {
     private var panels: [AreaSelectionPanel] = []
     private var overlayViews: [AreaSelectionView] = []
     private var continuation: CheckedContinuation<AreaSelectionResult?, Never>?
+    private(set) var requestedContentPicker = false
 
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "Kapp",
@@ -69,6 +70,7 @@ final class AreaSelectionOverlay {
     /// Presents the area selection overlay on all connected displays
     /// - Returns: The selected area result, or nil if cancelled
     func present(model: RecorderModel) async -> AreaSelectionResult? {
+        requestedContentPicker = false
         let screens = NSScreen.screens
         guard !screens.isEmpty else {
             logger.error("No screens available")
@@ -92,6 +94,7 @@ final class AreaSelectionOverlay {
 
                 panel.contentView = overlayView
                 panel.makeKeyAndOrderFront(nil)
+                if screen.frame.contains(NSEvent.mouseLocation) { overlayView.showInitialControls() }
 
                 panels.append(panel)
                 overlayViews.append(overlayView)
@@ -151,6 +154,11 @@ extension AreaSelectionOverlay: AreaSelectionViewDelegate {
     func areaSelectionViewDidBeginDrawing(_ view: AreaSelectionView) {
         clearOtherViews(except: view)
     }
+
+    func areaSelectionViewDidRequestPicker(_ view: AreaSelectionView) {
+        requestedContentPicker = true
+        cancel()
+    }
 }
 
 // MARK: - AreaSelectionViewDelegate Protocol
@@ -160,6 +168,7 @@ protocol AreaSelectionViewDelegate: AnyObject {
     func areaSelectionView(_ view: AreaSelectionView, didConfirmSelection rect: CGRect, on screen: NSScreen)
     func areaSelectionViewDidCancel(_ view: AreaSelectionView)
     func areaSelectionViewDidBeginDrawing(_ view: AreaSelectionView)
+    func areaSelectionViewDidRequestPicker(_ view: AreaSelectionView)
 }
 
 // MARK: - Interaction State
@@ -190,6 +199,7 @@ final class AreaSelectionView: NSView {
 
     private let screen: NSScreen
     private let model: RecorderModel
+    private let controls = SelectionControls()
     private var selectionRect: CGRect = .zero
     private var interactionState: InteractionState = .idle
     private var trackingArea: NSTrackingArea?
@@ -231,6 +241,8 @@ final class AreaSelectionView: NSView {
     }
 
     // MARK: - Public Methods
+
+    func showInitialControls() { showActionButtons() }
 
     /// Resets the selection, called by the overlay coordinator to clear other screens
     func resetSelection() {
@@ -491,6 +503,8 @@ final class AreaSelectionView: NSView {
     // MARK: - Action Buttons
 
     private func showActionButtons() {
+        controls.width = Int((selectionRect.width * screen.backingScaleFactor).rounded())
+        controls.height = Int((selectionRect.height * screen.backingScaleFactor).rounded())
         guard buttonContainer == nil else {
             updateButtonPositions()
             return
@@ -498,12 +512,20 @@ final class AreaSelectionView: NSView {
 
         let container = NSHostingView(rootView: CaptureToolbar(
             model: model,
+            controls: controls,
             record: { [weak self] in self?.confirmSelectionIfValid() },
             cancel: { [weak self] in
                 guard let self else { return }
                 self.delegate?.areaSelectionViewDidCancel(self)
-            }
+            },
+            pickWindow: { [weak self] in
+                guard let self else { return }
+                self.delegate?.areaSelectionViewDidRequestPicker(self)
+            },
+            fullScreen: { [weak self] in self?.selectFullScreen() },
+            resize: { [weak self] width, height in self?.resizeSelection(width: width, height: height) }
         ))
+        container.clipsToBounds = false
         addSubview(container)
         container.translatesAutoresizingMaskIntoConstraints = false
         let centerX = container.centerXAnchor.constraint(equalTo: leftAnchor)
@@ -523,15 +545,43 @@ final class AreaSelectionView: NSView {
     }
 
     private func updateButtonPositions() {
-        let size = buttonContainer?.fittingSize ?? .zero
-        let halfWidth = size.width / 2
-        let halfHeight = size.height / 2
-        let x = min(max(selectionRect.midX, halfWidth + 8), bounds.width - halfWidth - 8)
-        // Prefer outside the selection; keep controls on-screen at the display edges.
-        let below = selectionRect.minY - halfHeight - 12
-        let y = below >= halfHeight + 8 ? below : min(selectionRect.maxY + halfHeight + 12, bounds.height - halfHeight - 8)
-        buttonContainerCenterX?.constant = x
-        buttonContainerCenterY?.constant = -y
+        // Kap places the action bar at 80% of the screen's height in top-left coordinates.
+        buttonContainerCenterX?.constant = bounds.midX
+        buttonContainerCenterY?.constant = -max(40, bounds.height * 0.2)
+    }
+
+    private func selectFullScreen() {
+        delegate?.areaSelectionViewDidBeginDrawing(self)
+        selectionRect = bounds
+        interactionState = .adjusting
+        showOverlay = true
+        showActionButtons()
+        needsDisplay = true
+    }
+
+    private func resizeSelection(width: Int, height: Int) {
+        guard width > 0, height > 0 else { return }
+        let scale = screen.backingScaleFactor
+        var size = CGSize(width: CGFloat(width) / scale, height: CGFloat(height) / scale)
+        if controls.ratioLocked, !selectionRect.isEmpty {
+            let ratio = selectionRect.width / selectionRect.height
+            if width != Int((selectionRect.width * scale).rounded()), height == Int((selectionRect.height * scale).rounded()) {
+                size.height = size.width / ratio
+            } else if height != Int((selectionRect.height * scale).rounded()), width == Int((selectionRect.width * scale).rounded()) {
+                size.width = size.height * ratio
+            }
+        }
+        size.width = min(bounds.width, max(minimumSize, size.width))
+        size.height = min(bounds.height, max(minimumSize, size.height))
+        let center = selectionRect.isEmpty ? CGPoint(x: bounds.midX, y: bounds.midY) : CGPoint(x: selectionRect.midX, y: selectionRect.midY)
+        delegate?.areaSelectionViewDidBeginDrawing(self)
+        selectionRect = CGRect(x: max(0, min(center.x - size.width / 2, bounds.width - size.width)),
+                               y: max(0, min(center.y - size.height / 2, bounds.height - size.height)),
+                               width: size.width, height: size.height)
+        interactionState = .adjusting
+        showOverlay = true
+        showActionButtons()
+        needsDisplay = true
     }
 
     // MARK: - Handle Calculation

@@ -38,7 +38,13 @@ final class RecorderModel {
             restoreSelectionBorder()
         }
 
-        guard let area = await areaSelector.present(model: self) else { return }
+        guard let area = await areaSelector.present(model: self) else {
+            if areaSelector.requestedContentPicker {
+                isSelecting = false
+                await selectContent()
+            }
+            return
+        }
         do {
             selection = try await CaptureSelection(area: area)
         } catch {
