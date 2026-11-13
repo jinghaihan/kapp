@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/AppIcon.png" alt="Kapp logo" width="160" height="160">
+  <img src="design/AppIcon.png" alt="Kapp logo" width="160" height="160">
 </p>
 
 <h1 align="center">Kapp</h1>

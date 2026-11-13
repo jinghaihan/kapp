@@ -20,7 +20,14 @@ for size in [16, 32, 128, 256, 512] {
         bitmap.size = NSSize(width: pixels, height: pixels)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
-        image.draw(in: NSRect(x: 0, y: 0, width: pixels, height: pixels))
+        NSGraphicsContext.current?.imageInterpolation = .high
+        let drawingScale = CGFloat(pixels) / 1024
+        let background = NSBezierPath(roundedRect: NSRect(x: 96 * drawingScale, y: 96 * drawingScale, width: 832 * drawingScale, height: 832 * drawingScale),
+                                      xRadius: 184 * drawingScale, yRadius: 184 * drawingScale)
+        NSColor.white.setFill()
+        background.fill()
+        background.addClip()
+        image.draw(in: NSRect(x: 116 * drawingScale, y: 104 * drawingScale, width: 832 * drawingScale, height: 832 * drawingScale))
         NSGraphicsContext.restoreGraphicsState()
         let png = bitmap.representation(using: .png, properties: [:])!
         let suffix = scale == 2 ? "@2x" : ""

@@ -62,7 +62,7 @@ third-party-licenses/   Retained third-party license notices
 
 ## Branding
 
-`design/AppIcon-concept.png` retains the original concept artwork. `design/AppIcon.png` is the transparent production source. Regenerate the packaged icon with:
+`design/AppIcon-concept.png` retains the original concept artwork. `design/AppIcon.png` is the transparent brand artwork used in the README. The icon generator adds a solid white rounded background only to the packaged app icon in `resources/AppIcon.png` and `resources/AppIcon.icns`. Regenerate it with:
 
 ```sh
 swift scripts/build-icon.swift
