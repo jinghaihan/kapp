@@ -17,7 +17,7 @@ open .build/Kapp.app
 Click the menu bar icon, draw an area, adjust it and click Record. Microphone,
 system audio and cursor options are available beside the selection. Click the
 menu bar icon again to stop. Right-click it for screen/window capture, pause and
-audio options. ⌃⌥⌘R starts area selection or stops the current recording globally.
+audio options. ⌘⇧5 starts area selection or stops the current recording globally.
 Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
 
 The current window only validates the recording core. Post-recording preview,

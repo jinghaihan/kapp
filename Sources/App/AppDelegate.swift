@@ -28,7 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Kapp")
             image?.isTemplate = true
             statusItem?.button?.image = image
-            statusItem?.button?.toolTip = state.isRecording ? "Stop Recording (⌃⌥⌘R)" : "Select Area (⌃⌥⌘R)"
+            statusItem?.button?.toolTip = state.isRecording ? "Stop Recording (⌘⇧5)" : "Select Area (⌘⇧5)"
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeRecordingState() }
         }

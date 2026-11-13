@@ -20,7 +20,7 @@ final class RecordingShortcut {
         }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &handler)
         guard status == noErr else { throw ShortcutError.registrationFailed }
         let id = EventHotKeyID(signature: 0x4B415050, id: 1)
-        let registered = RegisterEventHotKey(UInt32(kVK_ANSI_R), UInt32(controlKey | optionKey | cmdKey),
+        let registered = RegisterEventHotKey(UInt32(kVK_ANSI_5), UInt32(shiftKey | cmdKey),
                                              id, GetApplicationEventTarget(), 0, &hotKey)
         guard registered == noErr else {
             if let handler { RemoveEventHandler(handler) }
@@ -39,6 +39,6 @@ private enum ShortcutError: LocalizedError {
     case registrationFailed
 
     var errorDescription: String? {
-        "Kapp could not register ⌃⌥⌘R. You can still record and stop from the menu bar."
+        "Kapp could not register ⌘⇧5. You can still record and stop from the menu bar."
     }
 }
