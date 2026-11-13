@@ -36,6 +36,12 @@ final class ContentPicker: NSObject, SCContentSharingPickerObserver {
         }
     }
 
+    func cancel() {
+        picker.isActive = false
+        continuation?.resume(returning: nil)
+        continuation = nil
+    }
+
     nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
         Task { @MainActor in
             self.picker.isActive = false

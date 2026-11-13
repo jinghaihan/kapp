@@ -18,6 +18,8 @@
     <string>15.2</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>LSUIElement</key>
+    <true/>
     <key>NSScreenCaptureUsageDescription</key>
     <string>Kapp records the screen, window or area you select.</string>
     <key>NSMicrophoneUsageDescription</key>

@@ -11,15 +11,20 @@ final class RecorderModel {
     private(set) var selection: CaptureSelection?
     private(set) var isSelecting = false
     private(set) var savedFile: URL?
-    var errorMessage: String?
+    var onFinished: ((URL) -> Void)?
+    var onError: ((Error) -> Void)?
 
     private let areaSelector = AreaSelectionOverlay()
     private let contentPicker = ContentPicker()
     private let border = SelectionBorderFrame()
 
     init() {
-        session.onFinished = { [weak self] url in self?.savedFile = url }
-        session.onError = { [weak self] error in self?.errorMessage = error.localizedDescription }
+        session.onFinished = { [weak self] url in
+            self?.savedFile = url
+            self?.border.dismiss()
+            self?.onFinished?(url)
+        }
+        session.onError = { [weak self] error in self?.onError?(error) }
     }
 
     var canSelect: Bool { session.state == .idle && !isSelecting }
@@ -33,12 +38,15 @@ final class RecorderModel {
             restoreSelectionBorder()
         }
 
-        guard let area = await areaSelector.present() else { return }
+        guard let area = await areaSelector.present(model: self) else { return }
         do {
             selection = try await CaptureSelection(area: area)
         } catch {
-            errorMessage = error.localizedDescription
+            onError?(error)
+            return
         }
+        isSelecting = false
+        await start()
     }
 
     func selectContent() async {
@@ -54,8 +62,11 @@ final class RecorderModel {
             guard let filter = try await contentPicker.present() else { return }
             selection = CaptureSelection(filter: filter)
         } catch {
-            errorMessage = error.localizedDescription
+            onError?(error)
+            return
         }
+        isSelecting = false
+        await start()
     }
 
     func start() async {
@@ -70,16 +81,21 @@ final class RecorderModel {
                 outputURL: directory.appending(path: name)
             )
         } catch {
-            errorMessage = error.localizedDescription
+            onError?(error)
         }
     }
 
     func stop() async {
         guard session.state.isRecording else { return }
-        do { try await session.stop() } catch { errorMessage = error.localizedDescription }
+        do { try await session.stop() } catch { onError?(error) }
+    }
+
+    func cancelSelection() {
+        areaSelector.cancel()
+        contentPicker.cancel()
     }
 
     private func restoreSelectionBorder() {
-        if let rect = selection?.screenRect { border.show(screenRect: rect) }
+        if session.state.isRecording, let rect = selection?.screenRect { border.show(screenRect: rect) }
     }
 }

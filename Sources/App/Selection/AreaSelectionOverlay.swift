@@ -7,6 +7,7 @@
 
 import AppKit
 import OSLog
+import SwiftUI
 
 /// Result of an area selection operation
 @MainActor
@@ -33,7 +34,7 @@ final class AreaSelectionPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        level = .screenSaver
+        level = .statusBar
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         ignoresMouseEvents = false
         acceptsMouseMovedEvents = true
@@ -67,7 +68,7 @@ final class AreaSelectionOverlay {
 
     /// Presents the area selection overlay on all connected displays
     /// - Returns: The selected area result, or nil if cancelled
-    func present() async -> AreaSelectionResult? {
+    func present(model: RecorderModel) async -> AreaSelectionResult? {
         let screens = NSScreen.screens
         guard !screens.isEmpty else {
             logger.error("No screens available")
@@ -84,7 +85,8 @@ final class AreaSelectionOverlay {
 
                 let overlayView = AreaSelectionView(
                     frame: NSRect(origin: .zero, size: screen.frame.size),
-                    screen: screen
+                    screen: screen,
+                    model: model
                 )
                 overlayView.delegate = self
 
@@ -98,6 +100,12 @@ final class AreaSelectionOverlay {
             // Ensure the panels capture all events
             NSApp.activate(ignoringOtherApps: true)
         }
+    }
+
+    func cancel() {
+        dismiss()
+        continuation?.resume(returning: nil)
+        continuation = nil
     }
 
     // MARK: - Private Methods
@@ -181,6 +189,7 @@ final class AreaSelectionView: NSView {
     weak var delegate: AreaSelectionViewDelegate?
 
     private let screen: NSScreen
+    private let model: RecorderModel
     private var selectionRect: CGRect = .zero
     private var interactionState: InteractionState = .idle
     private var trackingArea: NSTrackingArea?
@@ -201,8 +210,6 @@ final class AreaSelectionView: NSView {
     private let dimmingOpacity: CGFloat = 0.5
 
     /// Confirm and cancel buttons shown during adjusting state
-    private var confirmButton: NSButton?
-    private var cancelButton: NSButton?
     private var buttonContainer: NSView?
 
     /// Position of the button container, updated as the selection moves
@@ -211,8 +218,9 @@ final class AreaSelectionView: NSView {
 
     // MARK: - Initialization
 
-    init(frame: NSRect, screen: NSScreen) {
+    init(frame: NSRect, screen: NSScreen, model: RecorderModel) {
         self.screen = screen
+        self.model = model
         super.init(frame: frame)
         setupTrackingArea()
     }
@@ -488,55 +496,22 @@ final class AreaSelectionView: NSView {
             return
         }
 
-        let container = NSView()
-
-        let confirm = makeActionButton(
-            title: "Confirm",
-            textColor: .systemGreen,
-            action: #selector(confirmButtonClicked)
-        )
-
-        let cancel = makeActionButton(
-            title: "Cancel",
-            textColor: .systemRed,
-            action: #selector(cancelButtonClicked)
-        )
-
-        container.addSubview(confirm)
-        container.addSubview(cancel)
+        let container = NSHostingView(rootView: CaptureToolbar(
+            model: model,
+            record: { [weak self] in self?.confirmSelectionIfValid() },
+            cancel: { [weak self] in
+                guard let self else { return }
+                self.delegate?.areaSelectionViewDidCancel(self)
+            }
+        ))
         addSubview(container)
-
-        confirm.translatesAutoresizingMaskIntoConstraints = false
-        cancel.translatesAutoresizingMaskIntoConstraints = false
         container.translatesAutoresizingMaskIntoConstraints = false
-
-        // The container is centred on the selection through constraints rather than by
-        // assigning its frame. Auto layout owns the frame of a view with
-        // `translatesAutoresizingMaskIntoConstraints` off, and writing to it directly
-        // invalidates the layout it is in the middle of computing.
-        // `leftAnchor` rather than `leadingAnchor`: the selection is a geometric rect and
-        // must not flip with the interface layout direction.
         let centerX = container.centerXAnchor.constraint(equalTo: leftAnchor)
         let centerY = container.centerYAnchor.constraint(equalTo: bottomAnchor)
-
-        NSLayoutConstraint.activate([
-            confirm.topAnchor.constraint(equalTo: container.topAnchor),
-            confirm.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            confirm.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            cancel.topAnchor.constraint(equalTo: confirm.bottomAnchor, constant: 8),
-            cancel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            cancel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            cancel.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            centerX,
-            centerY
-        ])
-
-        self.confirmButton = confirm
-        self.cancelButton = cancel
-        self.buttonContainer = container
-        self.buttonContainerCenterX = centerX
-        self.buttonContainerCenterY = centerY
-
+        NSLayoutConstraint.activate([centerX, centerY])
+        buttonContainer = container
+        buttonContainerCenterX = centerX
+        buttonContainerCenterY = centerY
         updateButtonPositions()
     }
 
@@ -545,36 +520,18 @@ final class AreaSelectionView: NSView {
         buttonContainer = nil
         buttonContainerCenterX = nil
         buttonContainerCenterY = nil
-        confirmButton = nil
-        cancelButton = nil
     }
 
     private func updateButtonPositions() {
-        // The view is unflipped, so selectionRect is measured from the bottom-left corner.
-        // Auto layout constants on vertical anchors grow downward, so the Y offset is negated.
-        buttonContainerCenterX?.constant = selectionRect.midX
-        buttonContainerCenterY?.constant = -selectionRect.midY
-    }
-
-    private func makeActionButton(title: String, textColor: NSColor, action: Selector) -> NSButton {
-        let button = NSButton(title: title, target: self, action: action)
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.8).cgColor
-        button.layer?.cornerRadius = 6
-        button.contentTintColor = textColor
-        button.font = .systemFont(ofSize: 14, weight: .regular)
-        button.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 36).isActive = true
-        return button
-    }
-
-    @objc private func confirmButtonClicked() {
-        confirmSelectionIfValid()
-    }
-
-    @objc private func cancelButtonClicked() {
-        delegate?.areaSelectionViewDidCancel(self)
+        let size = buttonContainer?.fittingSize ?? .zero
+        let halfWidth = size.width / 2
+        let halfHeight = size.height / 2
+        let x = min(max(selectionRect.midX, halfWidth + 8), bounds.width - halfWidth - 8)
+        // Prefer outside the selection; keep controls on-screen at the display edges.
+        let below = selectionRect.minY - halfHeight - 12
+        let y = below >= halfHeight + 8 ? below : min(selectionRect.maxY + halfHeight + 12, bounds.height - halfHeight - 8)
+        buttonContainerCenterX?.constant = x
+        buttonContainerCenterY?.constant = -y
     }
 
     // MARK: - Handle Calculation

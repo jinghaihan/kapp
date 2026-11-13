@@ -14,9 +14,11 @@ bash scripts/build.sh
 open .build/Kapp.app
 ```
 
-Select an area, screen or window, then start recording. Stop from the menu bar
-or with ⌘. while Kapp is focused. Recordings are saved under `~/Movies/Kapp`.
-System audio, microphone, cursor visibility and pause/resume are supported.
+Click the menu bar icon, draw an area, adjust it and click Record. Microphone,
+system audio and cursor options are available beside the selection. Click the
+menu bar icon again to stop. Right-click it for screen/window capture, pause and
+audio options. ⌃⌥⌘R starts area selection or stops the current recording globally.
+Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
 
 The current window only validates the recording core. Post-recording preview,
 trimming and GIF export are not implemented yet.
