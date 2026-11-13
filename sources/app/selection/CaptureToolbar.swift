@@ -1,4 +1,4 @@
-// Layout adapted from Kap's 464×64 action bar. MIT; see ThirdPartyLicenses/Kap.txt.
+// Layout adapted from Kap's 464×64 action bar. MIT; see third-party-licenses/Kap.txt.
 import SwiftUI
 
 struct CaptureToolbar: View {
@@ -8,6 +8,7 @@ struct CaptureToolbar: View {
     let cancel: () -> Void
     let pickWindow: () -> Void
     let fullScreen: () -> Void
+    let dimensions: () -> Void
     let resize: (Int, Int) -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -54,9 +55,13 @@ struct CaptureToolbar: View {
                 .frame(width: 200)
                 .position(x: 364, y: 32)
             } else {
-                icon("crop", label: "Dimensions") { controls.advanced = true }.position(x: 44, y: 32)
+                icon("crop", label: "Dimensions", action: dimensions)
+                    .disabled(controls.isFullScreen)
+                    .position(x: 44, y: 32)
                 icon("applications", label: "Record Window", action: pickWindow).position(x: 132, y: 32)
-                icon("fullscreen", label: "Record Full Screen", action: fullScreen).position(x: 332, y: 32)
+                icon(controls.isFullScreen ? "exit-fullscreen" : "fullscreen",
+                     label: controls.isFullScreen ? "Exit Full Screen" : "Record Full Screen",
+                     action: fullScreen).position(x: 332, y: 32)
                 icon("more", label: "Options") { CaptureOptionsMenu.present(model: model, cancel: cancel) }
                     .position(x: 420, y: 32)
             }

@@ -7,4 +7,5 @@ final class SelectionControls {
     var height = 0
     var advanced = false
     var ratioLocked = false
+    var isFullScreen = false
 }

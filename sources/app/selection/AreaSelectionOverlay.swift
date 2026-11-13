@@ -203,6 +203,7 @@ final class AreaSelectionView: NSView {
     private let model: RecorderModel
     private let controls = SelectionControls()
     private var selectionRect: CGRect = .zero
+    private var areaBeforeFullScreen: CGRect = .zero
     private var interactionState: InteractionState = .idle
     private var trackingArea: NSTrackingArea?
 
@@ -249,6 +250,8 @@ final class AreaSelectionView: NSView {
     /// Resets the selection, called by the overlay coordinator to clear other screens
     func resetSelection() {
         selectionRect = .zero
+        areaBeforeFullScreen = .zero
+        controls.isFullScreen = false
         interactionState = .idle
         showOverlay = false
         hideActionButtons()
@@ -300,6 +303,7 @@ final class AreaSelectionView: NSView {
         window?.makeKey()
 
         let point = convert(event.locationInWindow, from: nil)
+        guard !controls.isFullScreen else { return }
 
         // Double-click inside selection to confirm
         if event.clickCount == 2, case .adjusting = interactionState, selectionRect.contains(point) {
@@ -432,7 +436,7 @@ final class AreaSelectionView: NSView {
         context.setLineDash(phase: 0, lengths: [])
 
         // Draw resize handles if adjusting
-        if case .adjusting = interactionState {
+        if case .adjusting = interactionState, !controls.isFullScreen {
             drawResizeHandles(in: context)
             drawDimensionLabel(in: context)
         }
@@ -525,6 +529,7 @@ final class AreaSelectionView: NSView {
                 self.delegate?.areaSelectionViewDidRequestPicker(self)
             },
             fullScreen: { [weak self] in self?.selectFullScreen() },
+            dimensions: { [weak self] in self?.showDimensions() },
             resize: { [weak self] width, height in self?.resizeSelection(width: width, height: height) }
         ))
         container.clipsToBounds = false
@@ -552,7 +557,13 @@ final class AreaSelectionView: NSView {
         buttonContainerCenterY?.constant = -max(40, bounds.height * 0.2)
     }
 
-    private func selectFullScreen() {
+    func selectFullScreen() {
+        if controls.isFullScreen {
+            returnToAreaSelection()
+            return
+        }
+        areaBeforeFullScreen = selectionRect
+        controls.isFullScreen = true
         delegate?.areaSelectionViewDidBeginDrawing(self)
         selectionRect = bounds
         interactionState = .adjusting
@@ -561,8 +572,26 @@ final class AreaSelectionView: NSView {
         needsDisplay = true
     }
 
+    func returnToAreaSelection() {
+        controls.isFullScreen = false
+        controls.advanced = false
+        selectionRect = areaBeforeFullScreen
+        interactionState = selectionRect.isEmpty ? .idle : .adjusting
+        showOverlay = !selectionRect.isEmpty
+        showActionButtons()
+        needsDisplay = true
+    }
+
+    func showDimensions() {
+        guard !controls.isFullScreen else { return }
+        controls.advanced = true
+        let pixels = Int((bounds.width * 0.2 * screen.backingScaleFactor).rounded())
+        resizeSelection(width: pixels, height: Int((Double(pixels) * 0.75).rounded()))
+    }
+
     private func resizeSelection(width: Int, height: Int) {
         guard width > 0, height > 0 else { return }
+        controls.isFullScreen = false
         let scale = screen.backingScaleFactor
         var size = CGSize(width: CGFloat(width) / scale, height: CGFloat(height) / scale)
         if controls.ratioLocked, !selectionRect.isEmpty {
@@ -638,6 +667,7 @@ final class AreaSelectionView: NSView {
 
     /// Begins a new drawing operation, notifying the delegate to clear other screens
     private func beginDrawing(at point: CGPoint) {
+        controls.isFullScreen = false
         interactionState = .drawing(origin: point)
         selectionRect = .zero
         showOverlay = true
