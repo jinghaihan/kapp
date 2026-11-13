@@ -104,11 +104,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openEditor(source: URL) {
         let id = UUID()
         let editor = EditorWindowController(source: source)
-        editor.onClose = { [weak self] in self?.editors.removeValue(forKey: id) }
+        editor.onClose = { [weak self] in
+            guard let self else { return }
+            self.editors.removeValue(forKey: id)
+            if self.editors.isEmpty { NSApp.setActivationPolicy(.accessory) }
+        }
         editors[id] = editor
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
         editor.showWindow(nil)
         editor.window?.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        editor.window?.orderFrontRegardless()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

@@ -15,6 +15,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate, NSTool
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
         window.title = source.deletingPathExtension().lastPathComponent
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: EditorView(model: model))
         super.init(window: window)
