@@ -1,0 +1,85 @@
+import AppKit
+import KappRecording
+import Observation
+import ScreenCaptureKit
+
+@MainActor
+@Observable
+final class RecorderModel {
+    let session = RecordingSession()
+    var configuration = RecordingConfiguration()
+    private(set) var selection: CaptureSelection?
+    private(set) var isSelecting = false
+    private(set) var savedFile: URL?
+    var errorMessage: String?
+
+    private let areaSelector = AreaSelectionOverlay()
+    private let contentPicker = ContentPicker()
+    private let border = SelectionBorderFrame()
+
+    init() {
+        session.onFinished = { [weak self] url in self?.savedFile = url }
+        session.onError = { [weak self] error in self?.errorMessage = error.localizedDescription }
+    }
+
+    var canSelect: Bool { session.state == .idle && !isSelecting }
+
+    func selectArea() async {
+        guard canSelect else { return }
+        isSelecting = true
+        border.dismiss()
+        defer {
+            isSelecting = false
+            restoreSelectionBorder()
+        }
+
+        guard let area = await areaSelector.present() else { return }
+        do {
+            selection = try await CaptureSelection(area: area)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func selectContent() async {
+        guard canSelect else { return }
+        isSelecting = true
+        border.dismiss()
+        defer {
+            isSelecting = false
+            restoreSelectionBorder()
+        }
+
+        do {
+            guard let filter = try await contentPicker.present() else { return }
+            selection = CaptureSelection(filter: filter)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func start() async {
+        guard canSelect, let selection else { return }
+        let directory = URL.moviesDirectory.appending(path: "Kapp", directoryHint: .isDirectory)
+        let name = "Kapp-\(Date.now.formatted(.iso8601).replacing(":", with: "-"))-\(UUID().uuidString.prefix(8)).mp4"
+        do {
+            try await session.start(
+                filter: selection.filter,
+                sourceRect: selection.sourceRect,
+                configuration: configuration,
+                outputURL: directory.appending(path: name)
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func stop() async {
+        guard session.state.isRecording else { return }
+        do { try await session.stop() } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func restoreSelectionBorder() {
+        if let rect = selection?.screenRect { border.show(screenRect: rect) }
+    }
+}
