@@ -11,7 +11,7 @@ bash scripts/build.sh
 open .build/Kapp.app
 ```
 
-The build script uses `/Applications/Xcode.app/Contents/Developer` when `DEVELOPER_DIR` is not already set. It builds a native app at `.build/Kapp.app`.
+The build script respects `DEVELOPER_DIR` or the full Xcode selected with `xcode-select`. If only Command Line Tools are selected, it falls back to `/Applications/Xcode.app/Contents/Developer`. It builds a native app at `.build/Kapp.app`.
 
 ## Local signing
 

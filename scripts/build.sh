@@ -2,8 +2,13 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]]; then
-    export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+if [[ -z "${DEVELOPER_DIR:-}" ]]; then
+    selected_developer_dir="$(xcode-select -p)"
+    if [[ "$selected_developer_dir" == *.app/Contents/Developer ]]; then
+        export DEVELOPER_DIR="$selected_developer_dir"
+    elif [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
+        export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+    fi
 fi
 
 swift build "$@"
