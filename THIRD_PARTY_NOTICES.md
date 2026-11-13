@@ -15,7 +15,7 @@ Capture toolbar layout, SVG icons and editor control styling are adapted from
 [Kap](https://github.com/wulkano/Kap). Copyright (c) Wulkano
 hello@wulkano.com (https://wulkano.com).
 
-Kapp's application icon is an original capture-frame design inspired by Kap's
+Kapp's application icon is an original particle-halo design using Kap's
 purple-to-teal palette.
 
 The original MIT license is retained in [third-party-licenses/Kap.txt](third-party-licenses/Kap.txt).
