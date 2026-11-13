@@ -589,7 +589,10 @@ final class AssetWriter: CaptureEngineSampleBufferDelegate, @unchecked Sendable 
         }
 
         // Finish writing (outside lock since it's async)
-        await writerToFinish.finishWriting()
+        // The imported async overload crashes on macOS 15 with both audio tracks.
+        await withCheckedContinuation { continuation in
+            writerToFinish.finishWriting { continuation.resume() }
+        }
 
         // Second critical section: check final status and cleanup
         return try lock.withLockUnchecked {

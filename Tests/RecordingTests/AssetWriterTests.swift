@@ -23,6 +23,27 @@ struct AssetWriterTests {
 
     // MARK: - Tests
 
+    @Test func recordingWithBothAudioTracksFinalizes() async throws {
+        var settings = makeConfiguration()
+        settings.captureSystemAudio = true
+        settings.captureMicrophone = true
+        let writer = AssetWriter()
+        try writer.setup(url: makeOutputURL(), settings: settings, videoSize: videoSize)
+        try writer.startWriting()
+        for index in 0..<20 {
+            writer.appendVideoSample(try makeVideoSampleBuffer(at: CMTime(value: CMTimeValue(index), timescale: 60)))
+            let audio = try makeSilentAudioSampleBuffer(at: CMTime(value: CMTimeValue(index * 1024), timescale: 48000))
+            writer.appendAudioSample(audio)
+            writer.appendMicrophoneSample(audio)
+            try await Task.sleep(for: .milliseconds(2))
+        }
+        let result = try await writer.finishWriting()
+        defer { try? FileManager.default.removeItem(at: result.url) }
+        let asset = AVURLAsset(url: result.url)
+        #expect(result.videoFrameCount > 0)
+        #expect(try await asset.loadTracks(withMediaType: .audio).count == 2)
+    }
+
     @Test func audioOnlyRecordingReportsZeroVideoFrames() async throws {
         var settings = makeConfiguration()
         settings.captureSystemAudio = true
