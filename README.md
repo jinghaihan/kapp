@@ -40,9 +40,25 @@ Stopping opens the editor. Drag either white endpoint on the playback track to
 trim; the selected range applies immediately. Choose MP4 or GIF and Save to Disk
 or Copy to Clipboard, then click Convert. The speaker button mutes MP4 exports.
 Open an existing recording with ⌘O or the menu bar's Open Recording item.
-GIFs loop at 15 fps, with a maximum dimension of 960 pixels. Copy provides the
+Size, scale and FPS controls follow Kap's editor. GIFs loop and default to 15 fps.
+Copy provides the
 exported file and, for GIFs, animated image data to compatible apps.
 The original recording is kept. Cancelling an export leaves existing files intact.
+Disk exports start on Desktop and remember the last folder you choose.
+
+## Release
+
+```sh
+python3 scripts/release.py minor --dry-run
+python3 scripts/release.py minor
+```
+
+The release script updates the app version, creates a Conventional Commit and an
+annotated tag, then pushes main and the tag atomically. Run it only when ready to
+publish. The tag workflow tests and builds a universal arm64/x86_64 app, generates
+notes with changelogithub, and uploads DMG, ZIP and SHA256 checksums to GitHub
+Release. CI packages use ad-hoc signing; local development uses the persistent
+certificate above. No local certificate or private key is uploaded to CI.
 
 ## Structure
 

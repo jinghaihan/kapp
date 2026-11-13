@@ -6,8 +6,8 @@ if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]
     export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
-swift build
-binary_dir="$(swift build --show-bin-path)"
+swift build "$@"
+binary_dir="$(swift build "$@" --show-bin-path)"
 app_dir="$PWD/.build/Kapp.app"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$binary_dir/Kapp" "$app_dir/Contents/MacOS/Kapp.next"
