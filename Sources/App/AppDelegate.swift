@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             shortcut = try RecordingShortcut { [weak self] in self?.toggleRecording() }
         } catch { showError(error) }
+        Task { await model.selectArea() }
     }
 
     private func observeRecordingState() {
@@ -95,7 +96,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     @objc func openRecording() {
-        guard model.canSelect else { return }
+        guard model.session.state == .idle else { return }
+        model.cancelSelection()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         let panel = NSOpenPanel()

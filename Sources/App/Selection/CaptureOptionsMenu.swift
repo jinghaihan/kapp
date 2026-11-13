@@ -28,7 +28,7 @@ final class CaptureOptionsMenu: NSObject {
         let dismiss = NSMenuItem(title: "Cancel", action: #selector(dismissSelection), keyEquivalent: "")
         dismiss.target = controller
         menu.addItem(dismiss)
-        withExtendedLifetime(controller) {
+        _ = withExtendedLifetime(controller) {
             menu.popUp(positioning: nil, at: NSPoint(x: event.locationInWindow.x, y: event.locationInWindow.y - 12), in: view)
         }
     }

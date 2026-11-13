@@ -93,7 +93,7 @@ final class AreaSelectionOverlay {
                 overlayView.delegate = self
 
                 panel.contentView = overlayView
-                panel.makeKeyAndOrderFront(nil)
+                panel.orderFront(nil)
                 if screen.frame.contains(NSEvent.mouseLocation) { overlayView.showInitialControls() }
 
                 panels.append(panel)
@@ -101,6 +101,8 @@ final class AreaSelectionOverlay {
             }
 
             // Ensure the panels capture all events
+            let active = panels.first { $0.frame.contains(NSEvent.mouseLocation) } ?? panels.first
+            active?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         }
     }
