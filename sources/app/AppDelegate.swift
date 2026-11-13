@@ -39,7 +39,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func statusItemClicked() {
-        if NSApp.currentEvent?.type == .rightMouseUp { showMenu() } else { toggleRecording() }
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showMenu()
+        } else if model.session.state == .paused {
+            model.session.togglePause()
+        } else if model.session.state == .recording, NSEvent.modifierFlags.contains(.option) {
+            model.session.togglePause()
+        } else {
+            toggleRecording()
+        }
     }
 
     private func toggleRecording() {
