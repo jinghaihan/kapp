@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import UniformTypeIdentifiers
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -67,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addItem("Show Cursor", action: #selector(toggleCursor), to: menu,
                 enabled: model.canSelect, checked: model.configuration.showCursor)
         menu.addItem(.separator())
+        addItem("Open Recording…", action: #selector(openRecording), to: menu, enabled: model.canSelect)
         addItem("Quit Kapp", action: #selector(quit), to: menu)
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
@@ -91,6 +93,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSystemAudio() { model.configuration.captureSystemAudio.toggle() }
     @objc private func toggleCursor() { model.configuration.showCursor.toggle() }
     @objc private func quit() { NSApp.terminate(nil) }
+
+    @objc func openRecording() {
+        guard model.canSelect else { return }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.mpeg4Movie, .quickTimeMovie]
+        panel.allowsMultipleSelection = false
+        panel.begin { [weak self] response in
+            guard let self else { return }
+            if response == .OK, let url = panel.url { self.openEditor(source: url) }
+            else if self.editors.isEmpty { NSApp.setActivationPolicy(.accessory) }
+        }
+    }
 
     private func showError(_ error: Error) {
         NSApp.activate()

@@ -14,14 +14,17 @@ bash scripts/build.sh
 open .build/Kapp.app
 ```
 
-Click the menu bar icon, draw an area, adjust it and click Record. Microphone,
-system audio and cursor options are available beside the selection. Click the
+Click the menu bar icon, draw an area, adjust it and click the red record button.
+The crop icon opens dimensions; the window and fullscreen icons change the source.
+Microphone, system audio and cursor options are in the action bar's More menu. Click the
 menu bar icon again to stop. Right-click it for screen/window capture, pause and
 audio options. ⌘⇧5 starts area selection or stops the current recording globally.
 Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
 
-Stopping opens a native player window. Use Trim (⌘T) to adjust both ends, then
-choose MP4 or GIF, then Copy or Export. Mute removes audio from MP4 exports.
+Stopping opens the editor. Drag either white endpoint on the playback track to
+trim; the selected range applies immediately. Choose MP4 or GIF and Save to Disk
+or Copy to Clipboard, then click Convert. The speaker button mutes MP4 exports.
+Open an existing recording with ⌘O or the menu bar's Open Recording item.
 GIFs loop at 15 fps, with a maximum dimension of 960 pixels. Copy provides the
 exported file and, for GIFs, animated image data to compatible apps.
 The original recording is kept. Cancelling an export leaves existing files intact.

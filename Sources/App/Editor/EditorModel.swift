@@ -10,10 +10,10 @@ final class EditorModel {
     let source: URL
     let player: AVPlayer
     private(set) var range: ClipRange?
-    private(set) var isTrimming = false
     private(set) var isExporting = false
     private(set) var copied = false
-    var canTrim = false
+    private(set) var currentTime: Double = 0
+    private(set) var isPlaying = false
     var format: ExportFormat = .mp4 {
         didSet {
             player.isMuted = muted || format == .gif
@@ -30,17 +30,21 @@ final class EditorModel {
 
     @ObservationIgnored weak var playerView: AVPlayerView?
     @ObservationIgnored private var exportTask: Task<Void, Never>?
-    @ObservationIgnored private var fullDuration: Double = 0
+    private(set) var fullDuration: Double = 0
+    @ObservationIgnored private var timeObserver: Any?
+    @ObservationIgnored private var endObserver: NSObjectProtocol?
+    @ObservationIgnored private var resumeAfterDragging = false
 
     init(source: URL) {
         self.source = source
         player = AVPlayer(url: source)
     }
 
-    var canExport: Bool { range != nil && !isExporting && !isTrimming }
+    var canExport: Bool { range != nil && !isExporting }
     private var filename: String { source.deletingPathExtension().lastPathComponent + "." + format.fileExtension }
 
-    func load() async {
+    func load(autoPlay: Bool = true) async {
+        guard range == nil else { return }
         do {
             guard let asset = player.currentItem?.asset else { throw ExportError.missingVideo }
             fullDuration = try await asset.load(.duration).seconds
@@ -53,23 +57,72 @@ final class EditorModel {
             }
             player.currentItem?.audioMix = mix
             range = try ClipRange(start: 0, end: fullDuration)
+            updatePlaybackBounds()
+            timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self] time in
+                let seconds = time.seconds
+                Task { @MainActor in self?.currentTime = seconds }
+            }
+            endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, self.isPlaying, let range = self.range else { return }
+                    self.player.seek(to: range.timeRange.start, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
+                        Task { @MainActor in if finished, self?.isPlaying == true { self?.player.play() } }
+                    }
+                }
+            }
+            if autoPlay { togglePlayback() }
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func trim() async {
-        guard let playerView, playerView.canBeginTrimming, !isExporting, !isTrimming else { return }
-        player.pause()
-        isTrimming = true
-        defer { isTrimming = false }
-        let result = await playerView.beginTrimming()
-        if result == .okButton, let item = player.currentItem {
-            do {
-                let start = item.reversePlaybackEndTime.isNumeric ? item.reversePlaybackEndTime.seconds : 0
-                let end = item.forwardPlaybackEndTime.isNumeric ? item.forwardPlaybackEndTime.seconds : fullDuration
-                range = try ClipRange(start: max(0, start), end: min(end, fullDuration))
-                copied = false
-            } catch { errorMessage = error.localizedDescription }
+    func togglePlayback() {
+        guard !isExporting, let range else { return }
+        if isPlaying {
+            pausePlayback()
+        } else {
+            isPlaying = true
+            if currentTime >= range.end - 1.0 / 600 { seek(to: range.start) }
+            player.play()
         }
+    }
+
+    func pausePlayback() {
+        isPlaying = false
+        player.pause()
+    }
+
+    func seek(to time: Double) {
+        guard let range else { return }
+        let target = min(max(time, range.start), max(range.start, range.end - 1.0 / 600))
+        currentTime = target
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+    }
+
+    func beginDragging() {
+        resumeAfterDragging = isPlaying
+        pausePlayback()
+    }
+
+    func endDragging() {
+        if resumeAfterDragging { togglePlayback() }
+        resumeAfterDragging = false
+    }
+
+    func updateTrim(start: Double? = nil, end: Double? = nil) {
+        guard !isExporting, let previous = range else { return }
+        let gap = min(1.0 / 60, fullDuration)
+        let lower = start.map { min(max(0, $0), previous.end - gap) } ?? previous.start
+        let upper = end.map { min(max(lower + gap, $0), fullDuration) } ?? previous.end
+        guard let updated = try? ClipRange(start: lower, end: upper) else { return }
+        range = updated
+        copied = false
+        updatePlaybackBounds()
+        seek(to: start != nil ? updated.start : updated.end)
+    }
+
+    private func updatePlaybackBounds() {
+        guard let range else { return }
+        player.currentItem?.reversePlaybackEndTime = range.timeRange.start
+        player.currentItem?.forwardPlaybackEndTime = range.timeRange.end
     }
 
     func save() async {
@@ -99,7 +152,7 @@ final class EditorModel {
         }
         isExporting = true
         copied = false
-        player.pause()
+        pausePlayback()
         let muted = muted
         let format = format
         exportTask = Task {
@@ -137,6 +190,10 @@ final class EditorModel {
 
     func close() {
         cancelExport()
-        player.pause()
+        pausePlayback()
+        if let timeObserver { player.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
+        endObserver = nil
     }
 }
