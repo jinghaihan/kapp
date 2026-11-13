@@ -130,8 +130,14 @@ final class EditorModel {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [format.contentType]
         panel.nameFieldStringValue = filename
-        panel.directoryURL = .downloadsDirectory
+        if let path = UserDefaults.standard.string(forKey: "export-directory"),
+           FileManager.default.fileExists(atPath: path) {
+            panel.directoryURL = URL(filePath: path, directoryHint: .isDirectory)
+        } else {
+            panel.directoryURL = .desktopDirectory
+        }
         guard await panel.beginSheetModal(for: window) == .OK, let destination = panel.url else { return }
+        UserDefaults.standard.set(destination.deletingLastPathComponent().path, forKey: "export-directory")
         beginExport(to: destination, copy: false)
     }
 
