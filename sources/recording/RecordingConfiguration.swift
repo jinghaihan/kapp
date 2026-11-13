@@ -5,7 +5,9 @@ package struct RecordingConfiguration: Sendable {
     package var frameRate: Int = 60
     package var captureSystemAudio = false
     package var captureMicrophone = false
+    package var microphoneDeviceID: String?
     package var showCursor = true
+    package var highlightClicks = false
 
     package init() {}
 }

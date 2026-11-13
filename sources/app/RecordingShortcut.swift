@@ -7,8 +7,9 @@ final class RecordingShortcut {
     private var hotKey: EventHotKeyRef?
     private var handler: EventHandlerRef?
     private let action: () -> Void
+    private(set) var binding: KeyboardShortcut?
 
-    init(action: @escaping () -> Void) throws {
+    init(binding: KeyboardShortcut? = .default, action: @escaping () -> Void) throws {
         self.action = action
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let status = InstallEventHandler(GetApplicationEventTarget(), { _, _, pointer in
@@ -19,14 +20,27 @@ final class RecordingShortcut {
             return noErr
         }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &handler)
         guard status == noErr else { throw ShortcutError.registrationFailed }
-        let id = EventHotKeyID(signature: 0x4B415050, id: 1)
-        let registered = RegisterEventHotKey(UInt32(kVK_ANSI_5), UInt32(shiftKey | cmdKey),
-                                             id, GetApplicationEventTarget(), 0, &hotKey)
-        guard registered == noErr else {
+        do { try update(binding) }
+        catch {
             if let handler { RemoveEventHandler(handler) }
             self.handler = nil
-            throw ShortcutError.registrationFailed
+            throw error
         }
+    }
+
+    func update(_ value: KeyboardShortcut?) throws {
+        guard value != binding else { return }
+        var replacement: EventHotKeyRef?
+        if let value {
+            let id = EventHotKeyID(signature: 0x4B415050, id: 1)
+            guard RegisterEventHotKey(value.keyCode, value.modifiers, id, GetApplicationEventTarget(), 0, &replacement) == noErr else {
+                throw ShortcutError.unavailable(value.displayName)
+            }
+        }
+        // Keep the old registration until the replacement is known to be available.
+        if let hotKey { UnregisterEventHotKey(hotKey) }
+        hotKey = replacement
+        binding = value
     }
 
     isolated deinit {
@@ -37,8 +51,12 @@ final class RecordingShortcut {
 
 private enum ShortcutError: LocalizedError {
     case registrationFailed
+    case unavailable(String)
 
     var errorDescription: String? {
-        "Kapp could not register ⌘⇧5. You can still record and stop from the menu bar."
+        switch self {
+        case .registrationFailed: "Kapp could not register the recording shortcut. You can still record and stop from the menu bar."
+        case .unavailable(let name): "The shortcut \(name) is already in use or unavailable. Choose another shortcut."
+        }
     }
 }

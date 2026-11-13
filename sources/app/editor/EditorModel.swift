@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 @Observable
 final class EditorModel {
     let source: URL
+    private let settings: AppSettings
     let player: AVPlayer
     private(set) var range: ClipRange?
     private(set) var isExporting = false
@@ -49,8 +50,9 @@ final class EditorModel {
     private var isWindowFocused = true
     private var resumePlaybackOnFocus = false
 
-    init(source: URL) {
+    init(source: URL, settings: AppSettings = .shared) {
         self.source = source
+        self.settings = settings
         player = AVPlayer(url: source)
     }
 
@@ -227,14 +229,8 @@ final class EditorModel {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [format.contentType]
         panel.nameFieldStringValue = filename
-        if let path = UserDefaults.standard.string(forKey: "export-directory"),
-           FileManager.default.fileExists(atPath: path) {
-            panel.directoryURL = URL(filePath: path, directoryHint: .isDirectory)
-        } else {
-            panel.directoryURL = .desktopDirectory
-        }
+        panel.directoryURL = settings.exportDirectory
         guard await panel.beginSheetModal(for: window) == .OK, let destination = panel.url else { return }
-        UserDefaults.standard.set(destination.deletingLastPathComponent().path, forKey: "export-directory")
         beginExport(to: destination, copy: false)
     }
 

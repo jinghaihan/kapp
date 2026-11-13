@@ -211,6 +211,7 @@ final class CaptureEngine: NSObject {
 
         // Cursor visibility
         config.showsCursor = settings.showCursor
+        config.showMouseClicks = settings.showCursor && settings.highlightClicks
 
         // Window shadows
         config.ignoreShadowsDisplay = false
@@ -224,6 +225,7 @@ final class CaptureEngine: NSObject {
 
         // Microphone settings - requires full TCC screen recording permission
         config.captureMicrophone = settings.captureMicrophone
+        config.microphoneCaptureDeviceID = settings.microphoneDeviceID
 
         return config
     }
