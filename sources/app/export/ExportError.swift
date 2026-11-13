@@ -7,6 +7,7 @@ enum ExportError: LocalizedError {
     case replacesOriginal
     case clipboardFailed
     case cannotEncodeGIF
+    case invalidSettings
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,7 @@ enum ExportError: LocalizedError {
         case .replacesOriginal: "Choose a different filename to keep the original recording."
         case .clipboardFailed: "The exported recording could not be copied to the clipboard."
         case .cannotEncodeGIF: "The animated GIF could not be encoded. Try exporting as MP4."
+        case .invalidSettings: "Choose a valid output size and frame rate."
         }
     }
 }

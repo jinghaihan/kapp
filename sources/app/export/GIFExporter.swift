@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 
 enum GIFExporter {
     @concurrent
-    static func export(source: URL, range: ClipRange, to destination: URL) async throws {
+    static func export(source: URL, range: ClipRange, settings: VideoExportSettings? = nil, to destination: URL) async throws {
+        try settings?.validate()
         guard source.resolvingSymlinksInPath().standardizedFileURL != destination.resolvingSymlinksInPath().standardizedFileURL else {
             throw ExportError.replacesOriginal
         }
@@ -12,10 +13,10 @@ enum GIFExporter {
         try range.validate(duration: try await asset.load(.duration).seconds)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
-        generator.maximumSize = CGSize(width: 960, height: 960)
+        generator.maximumSize = settings?.size ?? CGSize(width: 960, height: 960)
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
-        let fps = 15.0
+        let fps = Double(min(50, settings?.frameRate ?? 15))
         let count = max(1, Int(ceil(range.duration * fps)))
         guard let output = CGImageDestinationCreateWithURL(destination as CFURL, UTType.gif.identifier as CFString, count, nil) else {
             throw ExportError.cannotEncodeGIF

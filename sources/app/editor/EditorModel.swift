@@ -14,10 +14,18 @@ final class EditorModel {
     private(set) var copied = false
     private(set) var currentTime: Double = 0
     private(set) var isPlaying = false
+    private(set) var sourceSize = CGSize.zero
+    private(set) var originalFrameRate = 60
+    private(set) var outputWidth = 0
+    private(set) var outputHeight = 0
+    private(set) var frameRate = 60
     var format: ExportFormat = .mp4 {
         didSet {
             player.isMuted = muted || format == .gif
             copied = false
+            if originalFrameRate > 0 {
+                frameRate = min(maximumFrameRate, savedFrameRate)
+            }
         }
     }
     var muted = false {
@@ -42,12 +50,45 @@ final class EditorModel {
 
     var canExport: Bool { range != nil && !isExporting }
     private var filename: String { source.deletingPathExtension().lastPathComponent + "." + format.fileExtension }
+    private var maximumFrameRate: Int { min(originalFrameRate, format == .gif ? 50 : 60) }
+    private var savedFrameRate: Int {
+        let saved = UserDefaults.standard.integer(forKey: "export-fps-\(format.rawValue)")
+        return saved > 0 ? saved : (format == .gif ? 15 : 60)
+    }
+
+    func setWidth(_ width: Int) {
+        guard sourceSize.width > 0 else { return }
+        outputWidth = min(Int(sourceSize.width), max(2, width / 2 * 2))
+        outputHeight = max(2, Int((Double(outputWidth) * sourceSize.height / sourceSize.width / 2).rounded()) * 2)
+        copied = false
+    }
+
+    func setHeight(_ height: Int) {
+        guard sourceSize.height > 0 else { return }
+        outputHeight = min(Int(sourceSize.height), max(2, height / 2 * 2))
+        outputWidth = max(2, Int((Double(outputHeight) * sourceSize.width / sourceSize.height / 2).rounded()) * 2)
+        copied = false
+    }
+
+    func setFrameRate(_ value: Int) {
+        frameRate = min(maximumFrameRate, max(1, value))
+        copied = false
+    }
 
     func load(autoPlay: Bool = true) async {
         guard range == nil else { return }
         do {
             guard let asset = player.currentItem?.asset else { throw ExportError.missingVideo }
             fullDuration = try await asset.load(.duration).seconds
+            guard let video = try await asset.loadTracks(withMediaType: .video).first else { throw ExportError.missingVideo }
+            let naturalSize = try await video.load(.naturalSize)
+            let transform = try await video.load(.preferredTransform)
+            let oriented = CGRect(origin: .zero, size: naturalSize).applying(transform)
+            sourceSize = CGSize(width: abs(oriented.width), height: abs(oriented.height))
+            outputWidth = Int(sourceSize.width.rounded())
+            outputHeight = Int(sourceSize.height.rounded())
+            originalFrameRate = max(1, Int((try await video.load(.nominalFrameRate)).rounded()))
+            frameRate = min(maximumFrameRate, savedFrameRate)
             let audio = try await asset.loadTracks(withMediaType: .audio)
             let mix = AVMutableAudioMix()
             mix.inputParameters = audio.map { track in
@@ -161,6 +202,8 @@ final class EditorModel {
         pausePlayback()
         let muted = muted
         let format = format
+        let settings = VideoExportSettings(width: outputWidth, height: outputHeight, frameRate: frameRate)
+        UserDefaults.standard.set(frameRate, forKey: "export-fps-\(format.rawValue)")
         exportTask = Task {
             // Export beside the destination, then replace it only after successful completion.
             let staging = destination.deletingLastPathComponent().appending(path: ".kapp-\(UUID().uuidString).\(format.fileExtension)")
@@ -172,9 +215,9 @@ final class EditorModel {
             do {
                 switch format {
                 case .mp4:
-                    try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, to: staging)
+                    try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, settings: settings, to: staging)
                 case .gif:
-                    try await GIFExporter.export(source: source, range: range, to: staging)
+                    try await GIFExporter.export(source: source, range: range, settings: settings, to: staging)
                 }
                 try Task.checkCancellation()
                 if FileManager.default.fileExists(atPath: destination.path()) {

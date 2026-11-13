@@ -3,7 +3,9 @@ import Foundation
 
 enum RecordingExporter {
     @concurrent
-    static func exportMP4(source: URL, range: ClipRange, muted: Bool, to destination: URL) async throws {
+    static func exportMP4(source: URL, range: ClipRange, muted: Bool,
+                         settings: VideoExportSettings? = nil, to destination: URL) async throws {
+        try settings?.validate()
         guard source.resolvingSymlinksInPath().standardizedFileURL != destination.resolvingSymlinksInPath().standardizedFileURL else {
             throw ExportError.replacesOriginal
         }
@@ -39,6 +41,24 @@ enum RecordingExporter {
         mix.inputParameters = audioParameters
         session.audioMix = mix
         session.shouldOptimizeForNetworkUse = true
+        if let settings {
+            let naturalSize = try await video.load(.naturalSize)
+            let transform = try await video.load(.preferredTransform)
+            let oriented = CGRect(origin: .zero, size: naturalSize).applying(transform)
+            let layer = AVMutableVideoCompositionLayerInstruction(assetTrack: outputVideo)
+            let normalized = transform.concatenating(CGAffineTransform(translationX: -oriented.minX, y: -oriented.minY))
+            layer.setTransform(normalized.concatenating(CGAffineTransform(
+                scaleX: CGFloat(settings.width) / oriented.width,
+                y: CGFloat(settings.height) / oriented.height)), at: .zero)
+            let instruction = AVMutableVideoCompositionInstruction()
+            instruction.timeRange = CMTimeRange(start: .zero, duration: range.timeRange.duration)
+            instruction.layerInstructions = [layer]
+            let composition = AVMutableVideoComposition()
+            composition.renderSize = settings.size
+            composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(settings.frameRate))
+            composition.instructions = [instruction]
+            session.videoComposition = composition
+        }
         do {
             try Task.checkCancellation()
             try await session.export(to: destination, as: .mp4)

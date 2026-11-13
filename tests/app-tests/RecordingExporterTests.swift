@@ -5,6 +5,18 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct RecordingExporterTests {
+    @Test func exportsTheRequestedSizeAndFrameRate() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = try await RecordingFixture.make(in: directory)
+        let destination = directory.appending(path: "scaled.mp4")
+        try await RecordingExporter.exportMP4(source: source, range: ClipRange(start: 0, end: 1),
+            muted: false, settings: VideoExportSettings(width: 32, height: 24, frameRate: 12), to: destination)
+        let video = try #require(try await AVURLAsset(url: destination).loadTracks(withMediaType: .video).first)
+        #expect(try await video.load(.naturalSize) == CGSize(width: 32, height: 24))
+        #expect(abs(try await video.load(.nominalFrameRate) - 12) < 0.1)
+    }
+
     @Test func exportsOnlyTheSelectedVideoAndMixesBothAudioTracks() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

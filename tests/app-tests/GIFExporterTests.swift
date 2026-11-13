@@ -8,6 +8,19 @@ import UniformTypeIdentifiers
 @MainActor
 @Suite(.serialized)
 struct GIFExporterTests {
+    @Test func respectsTheRequestedSizeAndFrameRate() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = try await RecordingFixture.make(in: directory)
+        let destination = directory.appending(path: "scaled.gif")
+        try await GIFExporter.export(source: source, range: ClipRange(start: 0, end: 0.5),
+            settings: VideoExportSettings(width: 32, height: 24, frameRate: 10), to: destination)
+        let imageSource = try #require(CGImageSourceCreateWithURL(destination as CFURL, nil))
+        #expect(CGImageSourceGetCount(imageSource) == 5)
+        let frame = try #require(CGImageSourceCreateImageAtIndex(imageSource, 0, nil))
+        #expect(frame.width == 32 && frame.height == 24)
+    }
+
     @Test func exportsAnimatedTrimmedGIFWithAccurateTiming() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

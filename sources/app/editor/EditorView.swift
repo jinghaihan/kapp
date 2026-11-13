@@ -7,19 +7,48 @@ struct EditorView: View {
     @State private var copyToClipboard = false
     @State private var formatAnchor = NSView()
     @State private var destinationAnchor = NSView()
+    @State private var percentageAnchor = NSView()
+    @State private var fpsOpen = false
 
     var body: some View {
         VStack(spacing: 0) {
             PlayerView(model: model)
-                .frame(minWidth: 640, minHeight: 340)
+                .frame(minWidth: 680, minHeight: 340)
                 .background(.black)
                 .overlay(alignment: .bottom) { PlaybackControls(model: model) }
             HStack(spacing: 8) {
-                if let range = model.range {
-                    Text("\(range.duration.formatted(.number.precision(.fractionLength(2)))) s")
-                        .foregroundStyle(.white.opacity(0.6))
-                        .monospacedDigit()
+                HStack(spacing: 8) {
+                    Text("Size")
+                    HStack(spacing: 1) {
+                        ExportNumberField(value: model.outputWidth, label: "Width", width: 48, update: model.setWidth)
+                        ExportNumberField(value: model.outputHeight, label: "Height", width: 48, update: model.setHeight)
+                    }
+                    Button {
+                        let percentages = [100, 75, 50, 33, 25, 20, 10]
+                        let titles = percentages.map { percent in
+                            let width = Int(model.sourceSize.width * Double(percent) / 100)
+                            return "\(width) × \(Int(Double(width) * model.sourceSize.height / model.sourceSize.width)) (\(percent)%)"
+                        }
+                        EditorOptionsMenu.present(titles: titles,
+                            selected: percentages.firstIndex(of: percentage) ?? 0,
+                            anchoredTo: percentageAnchor) {
+                            model.setWidth(Int(model.sourceSize.width * Double(percentages[$0]) / 100))
+                        }
+                    } label: { selectorLabel("\(percentage)%", width: 60) }
+                    .buttonStyle(.plain)
+                    .background(EditorMenuAnchor(view: percentageAnchor).allowsHitTesting(false))
+                    .accessibilityLabel("Output Scale")
+                    Text("FPS")
+                    ExportNumberField(value: model.frameRate, label: "Frame Rate", width: 32,
+                                      update: model.setFrameRate, focused: { fpsOpen = true })
+                        .popover(isPresented: $fpsOpen, arrowEdge: .bottom) {
+                            Slider(value: Binding(get: { Double(model.frameRate) },
+                                                  set: { model.setFrameRate(Int($0.rounded())) }),
+                                   in: 1...Double(max(2, model.originalFrameRate)), step: 1)
+                                .frame(width: 160).padding(12)
+                        }
                 }
+                .disabled(!model.canExport)
                 Spacer(minLength: 0)
                 Button {
                     EditorOptionsMenu.present(
@@ -74,6 +103,11 @@ struct EditorView: View {
         } message: { Text(model.errorMessage ?? "") }
     }
 
+    private var percentage: Int {
+        guard model.sourceSize.width > 0 else { return 100 }
+        return Int((Double(model.outputWidth) / model.sourceSize.width * 100).rounded())
+    }
+
     private func selectorLabel(_ text: String, width: CGFloat) -> some View {
         HStack {
             Text(text)
@@ -83,6 +117,37 @@ struct EditorView: View {
         .padding(.horizontal, 8)
         .frame(width: width, height: 24)
         .background(.white.opacity(0.1), in: .rect(cornerRadius: 4))
+    }
+}
+
+private struct ExportNumberField: View {
+    let value: Int
+    let label: String
+    let width: CGFloat
+    let update: (Int) -> Void
+    var focused: (() -> Void)?
+    @State private var text = ""
+    @FocusState private var editing: Bool
+
+    var body: some View {
+        TextField("", text: $text)
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.center)
+            .focused($editing)
+            .frame(width: width, height: 24)
+            .background(.white.opacity(0.1), in: .rect(cornerRadius: 4))
+            .accessibilityLabel(label)
+            .onAppear { text = String(value) }
+            .onChange(of: value) { _, value in text = String(value) }
+            .onChange(of: editing) { _, active in
+                if active { focused?() } else { commit() }
+            }
+            .onSubmit { commit() }
+    }
+
+    private func commit() {
+        if let number = Int(text) { update(number) }
+        text = String(value)
     }
 }
 
