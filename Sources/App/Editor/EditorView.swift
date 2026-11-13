@@ -1,9 +1,12 @@
 // Preview layout follows Kap: video controls over the picture, a 48pt export row below.
+import AppKit
 import SwiftUI
 
 struct EditorView: View {
     @Bindable var model: EditorModel
     @State private var copyToClipboard = false
+    @State private var formatAnchor = NSView()
+    @State private var destinationAnchor = NSView()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,20 +24,24 @@ struct EditorView: View {
                 Button {
                     EditorOptionsMenu.present(
                         titles: ExportFormat.allCases.map(\.rawValue),
-                        selected: ExportFormat.allCases.firstIndex(of: model.format) ?? 0
+                        selected: ExportFormat.allCases.firstIndex(of: model.format) ?? 0,
+                        anchoredTo: formatAnchor
                     ) { model.format = ExportFormat.allCases[$0] }
                 } label: { selectorLabel(model.format.rawValue, width: 112) }
                 .buttonStyle(.plain)
+                .background(EditorMenuAnchor(view: formatAnchor).allowsHitTesting(false))
                 .accessibilityLabel("Export Format")
                 .disabled(model.isExporting)
 
                 Button {
                     EditorOptionsMenu.present(
                         titles: ["Save to Disk", "Copy to Clipboard"],
-                        selected: copyToClipboard ? 1 : 0
+                        selected: copyToClipboard ? 1 : 0,
+                        anchoredTo: destinationAnchor
                     ) { copyToClipboard = $0 == 1 }
                 } label: { selectorLabel(copyToClipboard ? "Copy to Clipboard" : "Save to Disk", width: 128) }
                 .buttonStyle(.plain)
+                .background(EditorMenuAnchor(view: destinationAnchor).allowsHitTesting(false))
                 .accessibilityLabel("Export Destination")
                 .disabled(model.isExporting)
 
