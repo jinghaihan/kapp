@@ -1,0 +1,78 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Verify version and test
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 -c 'import os,sys; sys.path.insert(0,"scripts"); from release import read_version; assert os.environ["RELEASE_TAG"] == "v" + read_version()'
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          swift test
+      - name: Build universal app
+        env:
+          KAPP_SIGNING_IDENTITY: '-'
+        run: bash scripts/build.sh --configuration release --arch arm64 --arch x86_64
+      - name: Package downloads
+        run: python3 scripts/package.py --tag "$GITHUB_REF_NAME"
+      - name: Generate release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes changelogithub@15.0.5 --github "$GITHUB_REPOSITORY" --to "$GITHUB_REF_NAME" --output dist/release-notes.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-files
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-files
+          path: dist
+      - name: Verify artifacts
+        run: cd dist && sha256sum -c SHA256SUMS
+      - name: Publish release
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft > dist/is-draft; then
+            test "$(cat dist/is-draft)" = true
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft --title "$GITHUB_REF_NAME" --notes-file dist/release-notes.md
+          fi
+          gh release edit "$GITHUB_REF_NAME" --notes-file dist/release-notes.md
+          gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/SHA256SUMS --clobber
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest

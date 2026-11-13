@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Test
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          swift test
+      - name: Build app
+        env:
+          KAPP_SIGNING_IDENTITY: '-'
+        run: |
+          bash scripts/build.sh --configuration release
+          ditto -c -k --sequesterRsrc --keepParent .build/Kapp.app .build/Kapp-macos.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Kapp-macos
+          path: .build/Kapp-macos.zip
+          if-no-files-found: error
