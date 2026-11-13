@@ -1,91 +1,46 @@
-# Kapp
+<p align="center">
+  <img src="resources/AppIcon.png" alt="Kapp logo" width="160" height="160">
+</p>
 
-A local macOS recorder prototype built from selected
-[BetterCapture](https://github.com/jsattler/BetterCapture) source files.
-Credit to Joshua Sattler and the BetterCapture contributors;
-see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LICENSE](LICENSE).
+<h1 align="center">Kapp</h1>
 
-Requires macOS 15.2+ and Xcode 26+.
+<p align="center">Capture your screen. Trim it. Share it.</p>
 
-## Run locally
+> [!NOTE]
+> Kapp's UI design and interaction model are based entirely on [Kap](https://getkap.co/), reimplemented with native macOS components. Recording, audio, and parts of area selection use source code adapted from [BetterCapture](https://github.com/jsattler/BetterCapture). Both projects' original copyright and license notices are retained.
 
-```sh
-bash scripts/build.sh
-open .build/Kapp.app
-```
+A native macOS screen recorder with area, window, and full-screen capture, a simple trimming editor, and MP4 or GIF export.
 
-Local builds reuse a private Kapp development certificate under
-`~/Library/Application Support/Kapp/Development`, keeping their signing identity
-stable across rebuilds. On first setup, approve this certificate for code signing:
+![Kapp's capture toolbar and editor with a mountain landscape, trim handles, and MP4/GIF export controls](docs/images/preview.png)
 
-```sh
-python3 scripts/sign.py .build/Kapp.app --trust
-bash scripts/build.sh
-```
+## Features
 
-The certificate is trusted only for code signing. Its private key and keychain
-password stay outside the repository. An Apple-issued identity can be supplied
-with `KAPP_SIGNING_IDENTITY`. CI uses `KAPP_SIGNING_IDENTITY=-` for ad-hoc packages.
-Switching from an old ad-hoc build requires granting screen recording access once
-more and reopening Kapp. Subsequent local builds reuse the same certificate.
+- **Capture:** Draw an area, choose a window, or record a whole display. Adjust dimensions and aspect ratio before starting.
+- **Audio:** Record system audio, your microphone, or both. Include or hide the mouse cursor.
+- **Controls:** Start or stop with `⌘⇧5`. Option-click the recording menu bar icon to pause; click it while paused to resume.
+- **Trim:** Preview your recording and drag either endpoint to keep the part you need. Hover over the timeline to preview frames.
+- **Export:** Choose MP4 or GIF, adjust dimensions and frame rate, then save to disk or copy to the clipboard. Original recordings are kept locally.
 
-Click the menu bar icon, draw an area, adjust it and click the red record button.
-The crop icon opens dimensions; the window and fullscreen icons change the source.
-Microphone, system audio and cursor options are in the action bar's More menu. Click the
-menu bar icon again to stop. Option-click while recording to pause; click while
-paused to resume. Right-click it for window capture, pause and
-audio options. ⌘⇧5 starts area selection or stops the current recording globally.
-Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
-Fullscreen uses Kap's enter/exit control and restores the previous area when
-exited. The window menu selects an application window without starting capture;
-click the red button when ready.
+## Get started
 
-Stopping opens the editor. Drag either white endpoint on the playback track to
-trim; the selected range applies immediately. Choose MP4 or GIF and Save to Disk
-or Copy to Clipboard, then click Convert. The speaker button mutes MP4 exports.
-Open an existing recording with ⌘O or the menu bar's Open Recording item.
-Size, scale and FPS controls follow Kap's editor. GIFs loop and default to 15 fps.
-Copy provides the
-exported file and, for GIFs, animated image data to compatible apps.
-The original recording is kept. Cancelling an export leaves existing files intact.
-Disk exports start on Desktop and remember the last folder you choose.
+Requires macOS 15.2 or later. Kapp is currently available as a source build; see the [development guide](docs/development.md) for Xcode requirements, building, and local signing.
 
-## Release
+Launch Kapp, then click its menu bar icon or press `⌘⇧5` to select an area. The window and full-screen buttons change what is recorded; click the red button to start. Click the menu bar icon again to stop and open the editor. Press `Escape` to cancel selection.
 
-```sh
-python3 scripts/release.py minor --dry-run
-python3 scripts/release.py minor
-```
+In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Disk exports initially open on Desktop and remember the last folder chosen. Original recordings are stored in `~/Movies/Kapp`. Use **Open Recording…** or `⌘O` to edit an existing video.
 
-The release script updates the app version, creates a Conventional Commit and an
-annotated tag, then pushes main and the tag atomically. Run it only when ready to
-publish. The tag workflow tests and builds a universal arm64/x86_64 app, generates
-notes with changelogithub, and uploads DMG, ZIP and SHA256 checksums to GitHub
-Release. CI packages use ad-hoc signing; local development uses the persistent
-certificate above. No local certificate or private key is uploaded to CI.
+## Development
 
-## Structure
+See [Development](docs/development.md) for build instructions and tests, and [Releasing](docs/releasing.md) for version upgrades, GitHub Actions, and release packaging.
 
-```text
-sources/
-  app/                  App entry, recording workflow and native controls
-    selection/          Area drawing, resize/move, window menu and border
-    editor/             Native video player and trimming window
-    export/             MP4/GIF processing and clipboard representations
-  recording/            ScreenCaptureKit streams, audio and MP4 writing
-tests/
-  Apptests/             Selection coordinate conversion
-  Recordingtests/       Display sizing and encoded recording regression tests
-resources/              App metadata and permission descriptions
-scripts/                Local app build
-```
+## Credits
 
-`KappRecording` is a separate Swift package target. It takes a content filter,
-capture options and output URL; it does not depend on the app or its selection UI.
-Recording uses H.264/AAC in MP4. No third-party dependencies are required.
+- [Kap](https://github.com/wulkano/Kap) by [Wulkano](https://wulkano.com): the UI design and interaction model, capture and playback icons, and adapted conversion test cases.
+- [BetterCapture](https://github.com/jsattler/BetterCapture) by [Joshua Sattler](https://github.com/jsattler) and contributors: selected recording, audio timing, display sizing, area selection, and selection-border implementations.
+- [Grand Teton National Park / USGS](https://www.usgs.gov/media/images/grand-tetons-grand-teton-national-park): public-domain landscape used in the native UI overview.
 
-## Tests
+See [Third-party notices](THIRD_PARTY_NOTICES.md) for source revisions and retained licenses. Kapp is an independent project and is not affiliated with either upstream project.
 
-```sh
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test
-```
+## License
+
+[MIT](./LICENSE) License © [jinghaihan](https://github.com/jinghaihan) for original contributions. Adapted code and assets retain their original copyright and MIT license notices.
