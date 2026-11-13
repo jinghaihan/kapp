@@ -15,7 +15,6 @@ final class RecorderModel {
     var onError: ((Error) -> Void)?
 
     private let areaSelector = AreaSelectionOverlay()
-    private let contentPicker = ContentPicker()
     private let border = SelectionBorderFrame()
 
     init() {
@@ -29,7 +28,7 @@ final class RecorderModel {
 
     var canSelect: Bool { session.state == .idle && !isSelecting }
 
-    func selectArea() async {
+    func selectArea(showWindowMenu: Bool = false) async {
         guard canSelect else { return }
         isSelecting = true
         border.dismiss()
@@ -38,13 +37,7 @@ final class RecorderModel {
             restoreSelectionBorder()
         }
 
-        guard let area = await areaSelector.present(model: self) else {
-            if areaSelector.requestedContentPicker {
-                isSelecting = false
-                await selectContent()
-            }
-            return
-        }
+        guard let area = await areaSelector.present(model: self, showWindowMenu: showWindowMenu) else { return }
         do {
             selection = try await CaptureSelection(area: area)
         } catch {
@@ -56,23 +49,7 @@ final class RecorderModel {
     }
 
     func selectContent() async {
-        guard canSelect else { return }
-        isSelecting = true
-        border.dismiss()
-        defer {
-            isSelecting = false
-            restoreSelectionBorder()
-        }
-
-        do {
-            guard let filter = try await contentPicker.present() else { return }
-            selection = CaptureSelection(filter: filter)
-        } catch {
-            onError?(error)
-            return
-        }
-        isSelecting = false
-        await start()
+        await selectArea(showWindowMenu: true)
     }
 
     func start() async {
@@ -98,7 +75,6 @@ final class RecorderModel {
 
     func cancelSelection() {
         areaSelector.cancel()
-        contentPicker.cancel()
     }
 
     private func restoreSelectionBorder() {

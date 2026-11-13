@@ -32,9 +32,13 @@ more and reopening Kapp. Subsequent local builds reuse the same certificate.
 Click the menu bar icon, draw an area, adjust it and click the red record button.
 The crop icon opens dimensions; the window and fullscreen icons change the source.
 Microphone, system audio and cursor options are in the action bar's More menu. Click the
-menu bar icon again to stop. Right-click it for screen/window capture, pause and
+menu bar icon again to stop. Option-click while recording to pause; click while
+paused to resume. Right-click it for window capture, pause and
 audio options. ⌘⇧5 starts area selection or stops the current recording globally.
 Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
+Fullscreen uses Kap's enter/exit control and restores the previous area when
+exited. The window menu selects an application window without starting capture;
+click the red button when ready.
 
 Stopping opens the editor. Drag either white endpoint on the playback track to
 trim; the selected range applies immediately. Choose MP4 or GIF and Save to Disk
@@ -65,7 +69,7 @@ certificate above. No local certificate or private key is uploaded to CI.
 ```text
 sources/
   app/                  App entry, recording workflow and native controls
-    selection/          Area drawing, resize/move, system picker and border
+    selection/          Area drawing, resize/move, window menu and border
     editor/             Native video player and trimming window
     export/             MP4/GIF processing and clipboard representations
   recording/            ScreenCaptureKit streams, audio and MP4 writing

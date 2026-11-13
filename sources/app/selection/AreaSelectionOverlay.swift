@@ -8,6 +8,7 @@
 import AppKit
 import OSLog
 import SwiftUI
+@preconcurrency import ScreenCaptureKit
 
 /// Result of an area selection operation
 @MainActor
@@ -16,6 +17,7 @@ struct AreaSelectionResult {
     let screenRect: CGRect
     /// The NSScreen on which the selection was made
     let screen: NSScreen
+    var window: SCWindow? = nil
 }
 
 // MARK: - AreaSelectionPanel
@@ -58,7 +60,6 @@ final class AreaSelectionOverlay {
     private var panels: [AreaSelectionPanel] = []
     private var overlayViews: [AreaSelectionView] = []
     private var continuation: CheckedContinuation<AreaSelectionResult?, Never>?
-    private(set) var requestedContentPicker = false
 
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "Kapp",
@@ -69,8 +70,7 @@ final class AreaSelectionOverlay {
 
     /// Presents the area selection overlay on all connected displays
     /// - Returns: The selected area result, or nil if cancelled
-    func present(model: RecorderModel) async -> AreaSelectionResult? {
-        requestedContentPicker = false
+    func present(model: RecorderModel, showWindowMenu: Bool = false) async -> AreaSelectionResult? {
         let screens = NSScreen.screens
         guard !screens.isEmpty else {
             logger.error("No screens available")
@@ -104,6 +104,9 @@ final class AreaSelectionOverlay {
             let active = panels.first { $0.frame.contains(NSEvent.mouseLocation) } ?? panels.first
             active?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            if showWindowMenu, let view = active?.contentView as? AreaSelectionView {
+                Task { await view.showWindowMenu() }
+            }
         }
     }
 
@@ -140,7 +143,7 @@ extension AreaSelectionOverlay: AreaSelectionViewDelegate {
     func areaSelectionView(_ view: AreaSelectionView, didConfirmSelection rect: CGRect, on screen: NSScreen) {
         logger.info("Area selected: \(rect.origin.x),\(rect.origin.y) \(rect.width)x\(rect.height)")
 
-        let result = AreaSelectionResult(screenRect: rect, screen: screen)
+        let result = AreaSelectionResult(screenRect: rect, screen: screen, window: view.selectedWindow)
         dismiss()
         continuation?.resume(returning: result)
         continuation = nil
@@ -157,9 +160,19 @@ extension AreaSelectionOverlay: AreaSelectionViewDelegate {
         clearOtherViews(except: view)
     }
 
-    func areaSelectionViewDidRequestPicker(_ view: AreaSelectionView) {
-        requestedContentPicker = true
-        cancel()
+    func areaSelectionView(_ view: AreaSelectionView, didSelectWindow window: SCWindow) {
+        let top = NSScreen.screens.first?.frame.maxY ?? 0
+        let rect = CGRect(x: window.frame.minX, y: top - window.frame.maxY,
+                          width: window.frame.width, height: window.frame.height)
+        let target = overlayViews.max {
+            let left = ($0.window?.frame ?? .zero).intersection(rect)
+            let right = ($1.window?.frame ?? .zero).intersection(rect)
+            return left.width * left.height < right.width * right.height
+        } ?? view
+        clearOtherViews(except: target)
+        target.selectWindow(window, screenRect: rect)
+        target.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -170,7 +183,7 @@ protocol AreaSelectionViewDelegate: AnyObject {
     func areaSelectionView(_ view: AreaSelectionView, didConfirmSelection rect: CGRect, on screen: NSScreen)
     func areaSelectionViewDidCancel(_ view: AreaSelectionView)
     func areaSelectionViewDidBeginDrawing(_ view: AreaSelectionView)
-    func areaSelectionViewDidRequestPicker(_ view: AreaSelectionView)
+    func areaSelectionView(_ view: AreaSelectionView, didSelectWindow window: SCWindow)
 }
 
 // MARK: - Interaction State
@@ -204,6 +217,7 @@ final class AreaSelectionView: NSView {
     private let controls = SelectionControls()
     private var selectionRect: CGRect = .zero
     private var areaBeforeFullScreen: CGRect = .zero
+    private(set) var selectedWindow: SCWindow?
     private var interactionState: InteractionState = .idle
     private var trackingArea: NSTrackingArea?
 
@@ -252,6 +266,7 @@ final class AreaSelectionView: NSView {
         selectionRect = .zero
         areaBeforeFullScreen = .zero
         controls.isFullScreen = false
+        selectedWindow = nil
         interactionState = .idle
         showOverlay = false
         hideActionButtons()
@@ -310,6 +325,7 @@ final class AreaSelectionView: NSView {
             confirmSelectionIfValid()
             return
         }
+        selectedWindow = nil
 
         switch interactionState {
         case .adjusting:
@@ -525,8 +541,7 @@ final class AreaSelectionView: NSView {
                 self.delegate?.areaSelectionViewDidCancel(self)
             },
             pickWindow: { [weak self] in
-                guard let self else { return }
-                self.delegate?.areaSelectionViewDidRequestPicker(self)
+                Task { await self?.showWindowMenu() }
             },
             fullScreen: { [weak self] in self?.selectFullScreen() },
             dimensions: { [weak self] in self?.showDimensions() },
@@ -563,6 +578,7 @@ final class AreaSelectionView: NSView {
             return
         }
         areaBeforeFullScreen = selectionRect
+        selectedWindow = nil
         controls.isFullScreen = true
         delegate?.areaSelectionViewDidBeginDrawing(self)
         selectionRect = bounds
@@ -589,9 +605,35 @@ final class AreaSelectionView: NSView {
         resizeSelection(width: pixels, height: Int((Double(pixels) * 0.75).rounded()))
     }
 
+    func showWindowMenu() async {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+            guard let buttonContainer else { return }
+            WindowSelectionMenu.present(windows: content.windows, selected: selectedWindow, in: buttonContainer) { [weak self] window in
+                guard let self else { return }
+                self.delegate?.areaSelectionView(self, didSelectWindow: window)
+            }
+        } catch {
+            delegate?.areaSelectionViewDidCancel(self)
+            model.onError?(error)
+        }
+    }
+
+    func selectWindow(_ window: SCWindow, screenRect: CGRect) {
+        selectedWindow = window
+        controls.isFullScreen = false
+        controls.advanced = false
+        selectionRect = screenRect.offsetBy(dx: -screen.frame.minX, dy: -screen.frame.minY).intersection(bounds)
+        interactionState = .adjusting
+        showOverlay = true
+        showActionButtons()
+        needsDisplay = true
+    }
+
     private func resizeSelection(width: Int, height: Int) {
         guard width > 0, height > 0 else { return }
         controls.isFullScreen = false
+        selectedWindow = nil
         let scale = screen.backingScaleFactor
         var size = CGSize(width: CGFloat(width) / scale, height: CGFloat(height) / scale)
         if controls.ratioLocked, !selectionRect.isEmpty {
@@ -732,6 +774,10 @@ final class AreaSelectionView: NSView {
     // MARK: - Cursor Management
 
     private func updateCursor(at point: CGPoint) {
+        guard !controls.isFullScreen else {
+            NSCursor.arrow.set()
+            return
+        }
         guard case .adjusting = interactionState else {
             NSCursor.crosshair.set()
             return

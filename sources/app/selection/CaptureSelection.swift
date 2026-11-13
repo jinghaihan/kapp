@@ -16,6 +16,13 @@ struct CaptureSelection {
     }
 
     init(area: AreaSelectionResult) async throws {
+        if let window = area.window {
+            filter = SCContentFilter(desktopIndependentWindow: window)
+            sourceRect = nil
+            screenRect = area.screenRect
+            label = window.title ?? "Window"
+            return
+        }
         let content = try await SCShareableContent.current
         let id = area.screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
         guard let display = content.displays.first(where: { $0.displayID == id }) else {

@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             addItem(model.session.state == .paused ? "Resume" : "Pause", action: #selector(togglePause), to: menu)
         } else {
             addItem("Record Area…", action: #selector(recordArea), to: menu, enabled: model.canSelect)
-            addItem("Record Screen or Window…", action: #selector(recordContent), to: menu, enabled: model.canSelect)
+            addItem("Record Window…", action: #selector(recordContent), to: menu, enabled: model.canSelect)
         }
         menu.addItem(.separator())
         addItem("Microphone", action: #selector(toggleMicrophone), to: menu,

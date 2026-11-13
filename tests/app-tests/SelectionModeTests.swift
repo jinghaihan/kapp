@@ -1,5 +1,6 @@
 import AppKit
 import Testing
+import ScreenCaptureKit
 @testable import Kapp
 
 @MainActor
@@ -61,5 +62,5 @@ private final class SelectionObserver: AreaSelectionViewDelegate {
     func areaSelectionView(_ view: AreaSelectionView, didConfirmSelection rect: CGRect, on screen: NSScreen) { self.rect = rect }
     func areaSelectionViewDidCancel(_ view: AreaSelectionView) {}
     func areaSelectionViewDidBeginDrawing(_ view: AreaSelectionView) {}
-    func areaSelectionViewDidRequestPicker(_ view: AreaSelectionView) {}
+    func areaSelectionView(_ view: AreaSelectionView, didSelectWindow window: SCWindow) {}
 }
