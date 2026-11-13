@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = RecorderModel()
     private var statusItem: NSStatusItem?
     private var shortcut: RecordingShortcut?
+    private var editors: [UUID: EditorWindowController] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
         model.onError = { [weak self] error in self?.showError(error) }
+        model.onFinished = { [weak self] source in self?.openEditor(source: source) }
         observeRecordingState()
         do {
             shortcut = try RecordingShortcut { [weak self] in self?.toggleRecording() }
@@ -97,6 +99,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = error.localizedDescription
         alert.alertStyle = .warning
         alert.runModal()
+    }
+
+    private func openEditor(source: URL) {
+        let id = UUID()
+        let editor = EditorWindowController(source: source)
+        editor.onClose = { [weak self] in self?.editors.removeValue(forKey: id) }
+        editors[id] = editor
+        editor.showWindow(nil)
+        editor.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

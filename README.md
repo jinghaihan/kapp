@@ -20,8 +20,9 @@ menu bar icon again to stop. Right-click it for screen/window capture, pause and
 audio options. ⌘⇧5 starts area selection or stops the current recording globally.
 Escape cancels selection. Recordings are saved under `~/Movies/Kapp`.
 
-The current window only validates the recording core. Post-recording preview,
-trimming and GIF export are not implemented yet.
+Stopping opens a native player window. Use Trim (⌘T) to adjust both ends, then
+Copy or Export the selected MP4. Mute removes audio from the exported file.
+The original recording is kept. GIF export is not implemented yet.
 
 ## Structure
 

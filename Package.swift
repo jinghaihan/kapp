@@ -19,7 +19,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AppTests",
-            dependencies: ["Kapp"],
+            dependencies: ["Kapp", "KappRecording"],
             path: "Tests/AppTests"
         )
     ]
