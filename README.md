@@ -14,17 +14,20 @@ bash scripts/build.sh
 open .build/Kapp.app
 ```
 
-For repeated local development, sign every build with the same code-signing
-identity to preserve privacy permissions:
+Local builds reuse a private Kapp development certificate under
+`~/Library/Application Support/Kapp/Development`, keeping their signing identity
+stable across rebuilds. On first setup, approve this certificate for code signing:
 
 ```sh
-KAPP_SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash scripts/build.sh
+python3 scripts/sign.py .build/Kapp.app --trust
+bash scripts/build.sh
 ```
 
-Without an identity, the script uses an ad-hoc signature. A rebuild can invalidate
-the previous screen recording permission even when System Settings shows Kapp as
-enabled. Remove Kapp from Screen & System Audio Recording, add the rebuilt app,
-then quit and reopen it.
+The certificate is trusted only for code signing. Its private key and keychain
+password stay outside the repository. An Apple-issued identity can be supplied
+with `KAPP_SIGNING_IDENTITY`. CI uses `KAPP_SIGNING_IDENTITY=-` for ad-hoc packages.
+Switching from an old ad-hoc build requires granting screen recording access once
+more and reopening Kapp. Subsequent local builds reuse the same certificate.
 
 Click the menu bar icon, draw an area, adjust it and click the red record button.
 The crop icon opens dimensions; the window and fullscreen icons change the source.
