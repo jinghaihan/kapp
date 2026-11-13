@@ -48,12 +48,13 @@ package final class RecordingSession: CaptureEngineDelegate {
         guard state.isRecording else { throw CaptureError.notRecording }
         state = .stopping
         defer { state = .idle }
+        let endTime = CMClockGetTime(CMClockGetHostTimeClock())
 
         // Finish the file even if the capture stream has already failed.
         do { try await engine.stopCapture() } catch { onError?(error) }
 
         do {
-            let result = try await writer.finishWriting()
+            let result = try await writer.finishWriting(at: endTime)
             guard result.videoFrameCount > 0 else { throw AssetWriterError.noFramesWritten }
             onFinished?(result.url)
             return result.url

@@ -23,6 +23,29 @@ struct AssetWriterTests {
 
     // MARK: - Tests
 
+    @Test func staticScreenKeepsItsLastFrameUntilStop() async throws {
+        let writer = AssetWriter()
+        try writer.setup(url: makeOutputURL(), settings: makeConfiguration(), videoSize: videoSize)
+        try writer.startWriting()
+        writer.appendVideoSample(try makeVideoSampleBuffer(at: .zero))
+        let result = try await writer.finishWriting(at: CMTime(value: 1, timescale: 1))
+        defer { try? FileManager.default.removeItem(at: result.url) }
+        #expect(result.videoFrameCount == 60)
+        #expect(try await AVURLAsset(url: result.url).load(.duration).seconds == 1)
+    }
+
+    @Test func stoppingDuringPauseDoesNotExtendTheRecording() async throws {
+        let writer = AssetWriter()
+        try writer.setup(url: makeOutputURL(), settings: makeConfiguration(), videoSize: videoSize)
+        try writer.startWriting()
+        writer.appendVideoSample(try makeVideoSampleBuffer(at: .zero))
+        writer.pause(at: CMTime(value: 1, timescale: 2))
+        let result = try await writer.finishWriting(at: CMTime(value: 5, timescale: 1))
+        defer { try? FileManager.default.removeItem(at: result.url) }
+        #expect(result.videoFrameCount == 30)
+        #expect(try await AVURLAsset(url: result.url).load(.duration).seconds == 0.5)
+    }
+
     @Test func recordingWithBothAudioTracksFinalizes() async throws {
         var settings = makeConfiguration()
         settings.captureSystemAudio = true

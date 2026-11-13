@@ -537,7 +537,7 @@ final class AssetWriter: CaptureEngineSampleBufferDelegate, @unchecked Sendable 
     /// - Returns: The output URL and the number of video frames written. A count of zero
     ///            means the file holds audio only, which happens when the capture source
     ///            stopped producing frames while audio kept flowing.
-    func finishWriting() async throws -> (url: URL, videoFrameCount: Int) {
+    func finishWriting(at endTime: CMTime? = nil) async throws -> (url: URL, videoFrameCount: Int) {
         // First critical section: validate state and let the drain loop close the video
         let (writerToFinish, url): (AVAssetWriter, URL)
 
@@ -561,6 +561,17 @@ final class AssetWriter: CaptureEngineSampleBufferDelegate, @unchecked Sendable 
                     throw AssetWriterError.noFramesWritten
                 }
 
+                // A static screen produces no new complete frames. Keep its last image
+                // through Stop, excluding any time spent paused.
+                if let endTime, endTime.isNumeric,
+                   let image = pendingPixelBuffer ?? lastPixelBuffer {
+                    let end = pauseStartedAt ?? endTime
+                    let elapsed = (end - totalPausedDuration - sessionAnchor).seconds
+                    if elapsed.isFinite, elapsed > 0 {
+                        pendingPixelBuffer = image
+                        pendingIndex = max(pendingIndex, Int(ceil(elapsed * Double(gridFrameRate))) - 1)
+                    }
+                }
                 isFinishingVideo = true
                 return (assetWriter, url)
             }
