@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import ScreenCaptureKit
 import UniformTypeIdentifiers
 
 @MainActor
@@ -112,6 +113,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showError(_ error: Error) {
         NSApp.activate()
         let alert = NSAlert()
+        if (error as? SCStreamError)?.code == .userDeclined {
+            alert.messageText = "Screen Recording Permission Required"
+            alert.informativeText = "Enable Kapp in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen Kapp.\n\nIf Kapp is already enabled, remove it from the list and add this build again. Local rebuilds with an ad-hoc signature can invalidate the previous permission."
+            alert.addButton(withTitle: "Open System Settings")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() == .alertFirstButtonReturn,
+               let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                NSWorkspace.shared.open(url)
+            }
+            return
+        }
         alert.messageText = "Kapp"
         alert.informativeText = error.localizedDescription
         alert.alertStyle = .warning

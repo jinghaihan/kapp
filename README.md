@@ -14,6 +14,18 @@ bash scripts/build.sh
 open .build/Kapp.app
 ```
 
+For repeated local development, sign every build with the same code-signing
+identity to preserve privacy permissions:
+
+```sh
+KAPP_SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash scripts/build.sh
+```
+
+Without an identity, the script uses an ad-hoc signature. A rebuild can invalidate
+the previous screen recording permission even when System Settings shows Kapp as
+enabled. Remove Kapp from Screen & System Audio Recording, add the rebuilt app,
+then quit and reopen it.
+
 Click the menu bar icon, draw an area, adjust it and click the red record button.
 The crop icon opens dimensions; the window and fullscreen icons change the source.
 Microphone, system audio and cursor options are in the action bar's More menu. Click the
