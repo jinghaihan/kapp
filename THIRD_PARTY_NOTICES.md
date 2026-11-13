@@ -18,4 +18,4 @@ hello@wulkano.com (https://wulkano.com).
 Kapp's application icon is an original capture-frame design inspired by Kap's
 purple-to-teal palette.
 
-The original MIT license is retained in [ThirdPartyLicenses/Kap.txt](ThirdPartyLicenses/Kap.txt).
+The original MIT license is retained in [third-party-licenses/Kap.txt](third-party-licenses/Kap.txt).

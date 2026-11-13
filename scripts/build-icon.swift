@@ -2,11 +2,11 @@
 import AppKit
 
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-let resources = root.appendingPathComponent("Resources")
+let resources = root.appendingPathComponent("resources")
 let iconset = root.appendingPathComponent(".build/AppIcon.iconset")
 try FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
-guard let image = NSImage(contentsOf: root.appendingPathComponent("Design/AppIcon-concept.png")) else {
-    fatalError("Cannot read Design/AppIcon-concept.png")
+guard let image = NSImage(contentsOf: root.appendingPathComponent("design/AppIcon-concept.png")) else {
+    fatalError("Cannot read design/AppIcon-concept.png")
 }
 
 for size in [16, 32, 128, 256, 512] {

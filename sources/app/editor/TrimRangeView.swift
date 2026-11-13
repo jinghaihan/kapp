@@ -1,5 +1,5 @@
 // Rendering follows Kap's 4px progress track and 5×16px trim handles.
-// MIT; see ThirdPartyLicenses/Kap.txt.
+// MIT; see third-party-licenses/Kap.txt.
 import AppKit
 import SwiftUI
 

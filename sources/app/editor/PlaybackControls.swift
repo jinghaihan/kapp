@@ -1,4 +1,4 @@
-// Layout and colours adapted from Kap's playback controls. MIT; see ThirdPartyLicenses/Kap.txt.
+// Layout and colours adapted from Kap's playback controls. MIT; see third-party-licenses/Kap.txt.
 import SwiftUI
 
 struct PlaybackControls: View {

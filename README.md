@@ -44,16 +44,16 @@ The original recording is kept. Cancelling an export leaves existing files intac
 ## Structure
 
 ```text
-Sources/
-  App/                  App entry, recording workflow and native controls
-    Selection/          Area drawing, resize/move, system picker and border
-    Editor/             Native video player and trimming window
-    Export/             MP4/GIF processing and clipboard representations
-  Recording/            ScreenCaptureKit streams, audio and MP4 writing
-Tests/
-  AppTests/             Selection coordinate conversion
-  RecordingTests/       Display sizing and encoded recording regression tests
-Resources/              App metadata and permission descriptions
+sources/
+  app/                  App entry, recording workflow and native controls
+    selection/          Area drawing, resize/move, system picker and border
+    editor/             Native video player and trimming window
+    export/             MP4/GIF processing and clipboard representations
+  recording/            ScreenCaptureKit streams, audio and MP4 writing
+tests/
+  Apptests/             Selection coordinate conversion
+  Recordingtests/       Display sizing and encoded recording regression tests
+resources/              App metadata and permission descriptions
 scripts/                Local app build
 ```
 

@@ -6,22 +6,22 @@ let package = Package(
     platforms: [.macOS("15.2")],
     products: [.executable(name: "Kapp", targets: ["Kapp"])],
     targets: [
-        .target(name: "KappRecording", path: "Sources/Recording"),
+        .target(name: "KappRecording", path: "sources/recording"),
         .executableTarget(
             name: "Kapp",
             dependencies: ["KappRecording"],
-            path: "Sources/App",
-            resources: [.process("Assets")]
+            path: "sources/app",
+            resources: [.process("assets")]
         ),
         .testTarget(
             name: "RecordingTests",
             dependencies: ["KappRecording"],
-            path: "Tests/RecordingTests"
+            path: "tests/recording-tests"
         ),
         .testTarget(
             name: "AppTests",
             dependencies: ["Kapp", "KappRecording"],
-            path: "Tests/AppTests"
+            path: "tests/app-tests"
         )
     ]
 )
