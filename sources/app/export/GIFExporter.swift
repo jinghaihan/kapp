@@ -27,7 +27,16 @@ enum GIFExporter {
             for index in 0..<count {
                 try Task.checkCancellation()
                 let time = CMTime(seconds: range.start + Double(index) / fps, preferredTimescale: 600)
-                let frame = try await generator.image(at: time).image
+                var frame = try await generator.image(at: time).image
+                if let settings, frame.width != settings.width || frame.height != settings.height {
+                    guard let context = CGContext(data: nil, width: settings.width, height: settings.height,
+                        bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw ExportError.cannotEncodeGIF }
+                    context.interpolationQuality = .high
+                    context.draw(frame, in: CGRect(origin: .zero, size: settings.size))
+                    guard let resized = context.makeImage() else { throw ExportError.cannotEncodeGIF }
+                    frame = resized
+                }
                 // GIF delays use hundredths. Distribute rounding across frames to preserve duration.
                 let endHundredths = max(previousHundredths + 1, Int((min(Double(index + 1) / fps, range.duration) * 100).rounded()))
                 let delay = Double(endHundredths - previousHundredths) / 100

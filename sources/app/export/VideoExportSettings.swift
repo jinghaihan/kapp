@@ -10,4 +10,5 @@ struct VideoExportSettings: Sendable {
     }
 
     var size: CGSize { CGSize(width: width, height: height) }
+    var h264Size: CGSize { CGSize(width: (width + 1) / 2 * 2, height: (height + 1) / 2 * 2) }
 }

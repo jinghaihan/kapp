@@ -62,15 +62,17 @@ final class EditorModel {
 
     func setWidth(_ width: Int) {
         guard sourceSize.width > 0 else { return }
-        outputWidth = min(Int(sourceSize.width), max(2, width / 2 * 2))
-        outputHeight = max(2, Int((Double(outputWidth) * sourceSize.height / sourceSize.width / 2).rounded()) * 2)
+        let ratio = sourceSize.width / sourceSize.height
+        outputWidth = min(Int(sourceSize.width), max(max(1, Int(ceil(ratio))), width))
+        outputHeight = Int(ratio > 1 ? ceil(Double(outputWidth) / ratio) : floor(Double(outputWidth) / ratio))
         copied = false
     }
 
     func setHeight(_ height: Int) {
         guard sourceSize.height > 0 else { return }
-        outputHeight = min(Int(sourceSize.height), max(2, height / 2 * 2))
-        outputWidth = max(2, Int((Double(outputHeight) * sourceSize.width / sourceSize.height / 2).rounded()) * 2)
+        let ratio = sourceSize.width / sourceSize.height
+        outputHeight = min(Int(sourceSize.height), max(max(1, Int(ceil(1 / ratio))), height))
+        outputWidth = Int(ratio > 1 ? floor(Double(outputHeight) * ratio) : ceil(Double(outputHeight) * ratio))
         copied = false
     }
 

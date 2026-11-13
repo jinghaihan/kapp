@@ -27,13 +27,18 @@ struct EditorView: View {
                     Button {
                         let percentages = [100, 75, 50, 33, 25, 20, 10]
                         let titles = percentages.map { percent in
-                            let width = Int(model.sourceSize.width * Double(percent) / 100)
-                            return "\(width) × \(Int(Double(width) * model.sourceSize.height / model.sourceSize.width)) (\(percent)%)"
+                            let width = Int((model.sourceSize.width * Double(percent) / 100).rounded())
+                            let ratio = model.sourceSize.width / model.sourceSize.height
+                            let height = Int(ratio > 1 ? ceil(Double(width) / ratio) : floor(Double(width) / ratio))
+                            return "\(width) × \(height) (\(percent == 100 ? "Original" : "\(percent)%"))"
                         }
-                        EditorOptionsMenu.present(titles: titles,
-                            selected: percentages.firstIndex(of: percentage) ?? 0,
+                        let custom = !percentages.contains(percentage)
+                        EditorOptionsMenu.present(titles: custom ? ["Custom"] + titles : titles,
+                            selected: custom ? 0 : (percentages.firstIndex(of: percentage) ?? 0),
                             anchoredTo: percentageAnchor) {
-                            model.setWidth(Int(model.sourceSize.width * Double(percentages[$0]) / 100))
+                            if custom && $0 == 0 { return }
+                            let index = custom ? $0 - 1 : $0
+                            model.setWidth(Int((model.sourceSize.width * Double(percentages[index]) / 100).rounded()))
                         }
                     } label: { selectorLabel("\(percentage)%", width: 60) }
                     .buttonStyle(.plain)

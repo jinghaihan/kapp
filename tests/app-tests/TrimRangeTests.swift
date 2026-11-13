@@ -5,6 +5,18 @@ import Testing
 
 @MainActor
 struct TrimRangeTests {
+    @Test func sizeFieldsPreserveOddValuesLikeKap() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = EditorModel(source: try await RecordingFixture.make(in: directory))
+        defer { model.close() }
+        await model.load(autoPlay: false)
+        model.setWidth(33)
+        #expect(model.outputWidth == 33 && model.outputHeight == 25)
+        model.setHeight(17)
+        #expect(model.outputWidth == 22 && model.outputHeight == 17)
+    }
+
     @Test func trackClicksSeekWithinTheSelectedRangeWithoutStartingPlayback() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

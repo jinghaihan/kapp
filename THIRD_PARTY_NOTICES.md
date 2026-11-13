@@ -11,7 +11,8 @@ Kapp currently imports selected source files only. It is not a GitHub fork.
 
 # Kap
 
-Capture toolbar layout, SVG icons and editor control styling are adapted from
+Capture toolbar layout, SVG icons, editor control styling and conversion test
+expectations are adapted from
 [Kap](https://github.com/wulkano/Kap). Copyright (c) Wulkano
 hello@wulkano.com (https://wulkano.com).
 
