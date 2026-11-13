@@ -18,23 +18,24 @@ struct EditorView: View {
                         .monospacedDigit()
                 }
                 Spacer(minLength: 0)
-                Menu {
-                    Picker("Format", selection: $model.format) {
-                        ForEach(ExportFormat.allCases) { format in Text(format.rawValue).tag(format) }
-                    }
+                Button {
+                    EditorOptionsMenu.present(
+                        titles: ExportFormat.allCases.map(\.rawValue),
+                        selected: ExportFormat.allCases.firstIndex(of: model.format) ?? 0
+                    ) { model.format = ExportFormat.allCases[$0] }
                 } label: { selectorLabel(model.format.rawValue, width: 112) }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Export Format")
                 .disabled(model.isExporting)
 
-                Menu {
-                    Picker("Destination", selection: $copyToClipboard) {
-                        Text("Save to Disk").tag(false)
-                        Text("Copy to Clipboard").tag(true)
-                    }
+                Button {
+                    EditorOptionsMenu.present(
+                        titles: ["Save to Disk", "Copy to Clipboard"],
+                        selected: copyToClipboard ? 1 : 0
+                    ) { copyToClipboard = $0 == 1 }
                 } label: { selectorLabel(copyToClipboard ? "Copy to Clipboard" : "Save to Disk", width: 128) }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Export Destination")
                 .disabled(model.isExporting)
 
                 if model.isExporting {
