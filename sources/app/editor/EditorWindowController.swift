@@ -25,7 +25,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.appearance = NSAppearance(named: .darkAqua)
-        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenPrimary]
         window.isReleasedWhenClosed = false
         window.isDocumentEdited = isNewRecording
         window.contentView = NSHostingView(rootView: EditorView(model: model))

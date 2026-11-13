@@ -4,6 +4,14 @@ import Testing
 
 @MainActor
 struct EditorWindowTests {
+    @Test func editorSupportsEnteringFullScreen() throws {
+        _ = NSApplication.shared
+        let editor = EditorWindowController(source: URL.temporaryDirectory.appending(path: "kapp-fullscreen-test.mp4"))
+        let window = try #require(editor.window)
+        #expect(window.collectionBehavior.contains(.fullScreenPrimary))
+        #expect(!window.collectionBehavior.contains(.fullScreenAuxiliary))
+    }
+
     @Test func losingFocusPausesAndReturningRestoresPlayback() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
