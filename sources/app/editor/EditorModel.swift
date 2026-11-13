@@ -239,7 +239,7 @@ final class EditorModel {
 
     func copy() {
         guard canExport else { return }
-        let directory = URL.cachesDirectory.appending(path: "Kapp/Clipboard/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let directory = URL.temporaryDirectory.appending(path: "Kapp/Clipboard/\(UUID().uuidString)", directoryHint: .isDirectory)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             beginExport(to: directory.appending(path: filename), copy: true)
