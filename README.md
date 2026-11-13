@@ -23,7 +23,9 @@ A native macOS screen recorder with area, window, and full-screen capture, a sim
 
 ## Get started
 
-Requires macOS 15.2 or later. Kapp is currently available as a source build; see the [development guide](docs/development.md) for Xcode requirements, building, and local signing.
+Requires macOS 15.2 or later. Download the DMG from the [latest release](https://github.com/jinghaihan/kapp/releases/latest), open it, and drag Kapp to Applications. The download supports both Apple Silicon and Intel Macs.
+
+See the [development guide](docs/development.md) to build from source with Xcode or use a persistent local signing identity. Release downloads are ad-hoc signed and are not notarized.
 
 Launch Kapp, then click its menu bar icon or press `⌘⇧5` to select an area. The window and full-screen buttons change what is recorded; click the red button to start. Click the menu bar icon again to stop and open the editor. Press `Escape` to cancel selection.
 
