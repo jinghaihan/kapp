@@ -5,19 +5,21 @@ import SwiftUI
 final class EditorWindowController: NSWindowController, NSWindowDelegate {
     private let model: EditorModel
     private let isNewRecording: Bool
+    private let recordingFiles: RecordingFiles
     var onClose: (() -> Void)?
     var confirmDiscard: (NSWindow) -> Bool = { _ in
         let alert = NSAlert()
         alert.messageText = "Are you sure that you want to discard this recording?"
-        alert.informativeText = "The editor will close. The original recording will remain in Movies/Kapp."
+        alert.informativeText = "The original recording will be deleted."
         alert.addButton(withTitle: "Discard")
         alert.addButton(withTitle: "Cancel")
         return alert.runModal() == .alertFirstButtonReturn
     }
 
-    init(source: URL, isNewRecording: Bool = false) {
+    init(source: URL, isNewRecording: Bool = false, recordingFiles: RecordingFiles = .shared) {
         model = EditorModel(source: source)
         self.isNewRecording = isNewRecording
+        self.recordingFiles = recordingFiles
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 530),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
@@ -51,7 +53,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        model.close()
+        recordingFiles.finishEditing(isNewRecording ? model.source : nil, after: model.close())
         window?.orderOut(nil)
         window?.contentView = nil
         onClose?()

@@ -12,6 +12,19 @@ struct EditorWindowTests {
         #expect(!window.collectionBehavior.contains(.fullScreenAuxiliary))
     }
 
+    @Test func closedEditorCannotResumePlaybackOrExport() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = EditorModel(source: try await RecordingFixture.make(in: directory))
+        await model.load()
+        await model.close().value
+        await model.load()
+        model.togglePlayback()
+        #expect(!model.isPlaying)
+        #expect(!model.canExport)
+        #expect(model.player.currentItem == nil)
+    }
+
     @Test func losingFocusPausesAndReturningRestoresPlayback() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

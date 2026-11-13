@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcut: RecordingShortcut?
     private var editors: [UUID: EditorWindowController] = [:]
     private var preferences: PreferencesWindowController?
+    private var isTerminating = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -24,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
         model.onError = { [weak self] error in self?.showError(error) }
+        model.recordingFiles.onError = { [weak self] error in self?.showError(error) }
         model.onFinished = { [weak self] source in self?.openEditor(source: source, isNewRecording: true) }
         model.makeMenu = { [weak self] in self?.makeMenu() ?? NSMenu() }
         observeRecordingState()
@@ -61,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func toggleRecording() {
+        guard !isTerminating else { return }
         if model.session.state.isRecording {
             Task { await model.stop() }
         } else if model.isSelecting {
@@ -128,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openRecording() {
-        guard model.session.state == .idle else { return }
+        guard !isTerminating, model.session.state == .idle else { return }
         model.cancelSelection()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
@@ -164,7 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func openEditor(source: URL, isNewRecording: Bool = false) {
         let id = UUID()
-        let editor = EditorWindowController(source: source, isNewRecording: isNewRecording)
+        let editor = EditorWindowController(source: source, isNewRecording: isNewRecording, recordingFiles: model.recordingFiles)
         editor.onClose = { [weak self] in
             guard let self else { return }
             self.editors.removeValue(forKey: id)
@@ -179,17 +182,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if model.session.state.isRecording {
-            Task {
-                await model.stop()
-                sender.reply(toApplicationShouldTerminate: self.confirmClosingEditors())
+        guard !isTerminating else { return .terminateLater }
+        guard model.session.state.isRecording || model.session.state == .idle else { return .terminateCancel }
+        isTerminating = true
+        Task {
+            if model.session.state.isRecording { await model.stop() }
+            guard confirmClosingEditors() else {
+                isTerminating = false
+                sender.reply(toApplicationShouldTerminate: false)
+                return
             }
-            return .terminateLater
+            model.cancelSelection()
+            // Discard was confirmed above; close directly without asking a second time.
+            for editor in Array(editors.values) { editor.window?.close() }
+            do { try await model.recordingFiles.cleanUpAll() }
+            catch { showError(error) }
+            sender.reply(toApplicationShouldTerminate: true)
         }
-        guard model.session.state == .idle else { return .terminateCancel }
-        guard confirmClosingEditors() else { return .terminateCancel }
-        model.cancelSelection()
-        return .terminateNow
+        return .terminateLater
     }
 
     private func confirmClosingEditors() -> Bool {

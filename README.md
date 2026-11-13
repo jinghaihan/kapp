@@ -29,7 +29,7 @@ See the [development guide](docs/development.md) to build from source with Xcode
 
 Launch Kapp, then click its menu bar icon or press `⌘⇧5` to select an area. The window and full-screen buttons change what is recorded; click the red button to start. Click the menu bar icon again to stop and open the editor. Press `Escape` to cancel selection.
 
-In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Original recordings are stored in `~/Movies/Kapp`. Use **Open Video…** or `⌘O` to edit an existing video.
+In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Original recordings are kept in `~/Movies/Kapp` while editing and deleted when their editor closes, with a final cleanup when Kapp quits. Exported files and videos opened with **Open Video…** or `⌘O` are kept.
 
 Open **Preferences…** from the menu bar's context menu, the capture toolbar's More menu, or `⌘,`. Set the recording shortcut, cursor visibility, click highlighting, microphone and input device, system audio, capture frame rate, and launch at login. Preferences are saved automatically; capture changes apply to the next recording. The default export folder starts on Desktop. Choose another folder in Preferences to change it; saving an individual export elsewhere leaves that default unchanged.
 

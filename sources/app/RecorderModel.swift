@@ -8,6 +8,7 @@ import ScreenCaptureKit
 final class RecorderModel {
     let session = RecordingSession()
     let settings: AppSettings
+    let recordingFiles: RecordingFiles
     var configuration: RecordingConfiguration { settings.recordingConfiguration }
     private(set) var selection: CaptureSelection?
     private(set) var isSelecting = false
@@ -19,8 +20,9 @@ final class RecorderModel {
     private let areaSelector = AreaSelectionOverlay()
     private let border = SelectionBorderFrame()
 
-    init(settings: AppSettings = .shared) {
+    init(settings: AppSettings = .shared, recordingFiles: RecordingFiles = .shared) {
         self.settings = settings
+        self.recordingFiles = recordingFiles
         session.onFinished = { [weak self] url in
             self?.savedFile = url
             self?.border.dismiss()
@@ -58,14 +60,13 @@ final class RecorderModel {
     func start() async {
         guard canSelect, let selection else { return }
         settings.refreshAudioDevices()
-        let directory = URL.moviesDirectory.appending(path: "Kapp", directoryHint: .isDirectory)
-        let name = "Kapp-\(Date.now.formatted(.iso8601).replacing(":", with: "-"))-\(UUID().uuidString.prefix(8)).mp4"
+        let outputURL = recordingFiles.makeURL()
         do {
             try await session.start(
                 filter: selection.filter,
                 sourceRect: selection.sourceRect,
                 configuration: configuration,
-                outputURL: directory.appending(path: name)
+                outputURL: outputURL
             )
         } catch {
             onError?(error)

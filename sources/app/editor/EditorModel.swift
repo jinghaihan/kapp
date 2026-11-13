@@ -47,6 +47,8 @@ final class EditorModel {
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
     @ObservationIgnored private var thumbnailTask: Task<Void, Never>?
+    @ObservationIgnored private var closeTask: Task<Void, Never>?
+    private var isClosed = false
     private var isWindowFocused = true
     private var resumePlaybackOnFocus = false
 
@@ -56,7 +58,7 @@ final class EditorModel {
         player = AVPlayer(url: source)
     }
 
-    var canExport: Bool { range != nil && !isExporting }
+    var canExport: Bool { !isClosed && range != nil && !isExporting }
     private var filename: String { source.deletingPathExtension().lastPathComponent + "." + format.fileExtension }
     var maximumFrameRate: Int { min(originalFrameRate, 60) }
     private var savedFrameRate: Int {
@@ -86,7 +88,7 @@ final class EditorModel {
     }
 
     func load(autoPlay: Bool = true) async {
-        guard range == nil else { return }
+        guard !isClosed, range == nil else { return }
         do {
             guard let asset = player.currentItem?.asset else { throw ExportError.missingVideo }
             fullDuration = try await asset.load(.duration).seconds
@@ -100,6 +102,7 @@ final class EditorModel {
             originalFrameRate = max(1, Int((try await video.load(.nominalFrameRate)).rounded()))
             frameRate = min(maximumFrameRate, savedFrameRate)
             let audio = try await asset.loadTracks(withMediaType: .audio)
+            guard !isClosed else { return }
             let mix = AVMutableAudioMix()
             mix.inputParameters = audio.map { track in
                 let parameters = AVMutableAudioMixInputParameters(track: track)
@@ -129,7 +132,7 @@ final class EditorModel {
     }
 
     func togglePlayback() {
-        guard !isExporting, let range else { return }
+        guard !isClosed, !isExporting, let range else { return }
         if isPlaying {
             pausePlayback()
         } else {
@@ -289,7 +292,12 @@ final class EditorModel {
 
     func cancelExport() { exportTask?.cancel() }
 
-    func close() {
+    @discardableResult
+    func close() -> Task<Void, Never> {
+        if let closeTask { return closeTask }
+        isClosed = true
+        let pendingExport = exportTask
+        let pendingThumbnail = thumbnailTask
         hideThumbnail()
         cancelExport()
         pausePlayback()
@@ -297,5 +305,12 @@ final class EditorModel {
         timeObserver = nil
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
+        player.replaceCurrentItem(with: nil)
+        let task = Task {
+            await pendingExport?.value
+            await pendingThumbnail?.value
+        }
+        closeTask = task
+        return task
     }
 }
