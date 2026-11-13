@@ -17,7 +17,7 @@ A native macOS screen recorder with area, window, and full-screen capture, a sim
 
 - **Capture:** Draw an area, choose a window, or record a whole display. Adjust dimensions and aspect ratio before starting.
 - **Audio:** Record system audio, your microphone, or both. Include or hide the mouse cursor.
-- **Controls:** Start or stop with `⌘⇧5`. Option-click the recording menu bar icon to pause; click it while paused to resume.
+- **Controls:** Start or stop with a configurable shortcut, initially `⌘⇧5`. Option-click the recording menu bar icon to pause; click it while paused to resume.
 - **Trim:** Preview your recording and drag either endpoint to keep the part you need. Hover over the timeline to preview frames.
 - **Export:** Choose MP4 or GIF, adjust dimensions and frame rate, then save to disk or copy to the clipboard. Original recordings are kept locally.
 
@@ -27,7 +27,9 @@ Requires macOS 15.2 or later. Kapp is currently available as a source build; see
 
 Launch Kapp, then click its menu bar icon or press `⌘⇧5` to select an area. The window and full-screen buttons change what is recorded; click the red button to start. Click the menu bar icon again to stop and open the editor. Press `Escape` to cancel selection.
 
-In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Disk exports initially open on Desktop and remember the last folder chosen. Original recordings are stored in `~/Movies/Kapp`. Use **Open Recording…** or `⌘O` to edit an existing video.
+In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Original recordings are stored in `~/Movies/Kapp`. Use **Open Video…** or `⌘O` to edit an existing video.
+
+Open **Preferences…** from the menu bar's context menu, the capture toolbar's More menu, or `⌘,`. Set the recording shortcut, cursor visibility, click highlighting, microphone and input device, system audio, capture frame rate, and launch at login. Preferences are saved automatically; capture changes apply to the next recording. The default export folder starts on Desktop. Choose another folder in Preferences to change it; saving an individual export elsewhere leaves that default unchanged.
 
 ## Development
 

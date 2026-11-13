@@ -5,10 +5,12 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let settings = AppSettings.shared
     private let model = RecorderModel()
     private var statusItem: NSStatusItem?
     private var shortcut: RecordingShortcut?
     private var editors: [UUID: EditorWindowController] = [:]
+    private var preferences: PreferencesWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -23,9 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
         model.onError = { [weak self] error in self?.showError(error) }
         model.onFinished = { [weak self] source in self?.openEditor(source: source, isNewRecording: true) }
+        model.makeMenu = { [weak self] in self?.makeMenu() ?? NSMenu() }
         observeRecordingState()
         do {
-            shortcut = try RecordingShortcut { [weak self] in self?.toggleRecording() }
+            shortcut = try RecordingShortcut(binding: nil) { [weak self] in self?.toggleRecording() }
+            settings.applyShortcut = { [weak self] value in try self?.shortcut?.update(value) }
+            try shortcut?.update(settings.shortcutsEnabled ? settings.shortcut : nil)
         } catch { showError(error) }
     }
 
@@ -36,7 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Kapp")
             image?.isTemplate = true
             statusItem?.button?.image = image
-            statusItem?.button?.toolTip = state.isRecording ? "Stop Recording (⌘⇧5)" : "Select Area (⌘⇧5)"
+            let key = settings.shortcutsEnabled ? " (\(settings.shortcut.displayName))" : ""
+            statusItem?.button?.toolTip = (state.isRecording ? "Stop Recording" : "Select Area") + key
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeRecordingState() }
         }
@@ -65,47 +71,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showMenu() {
+        statusItem?.menu = makeMenu()
+        statusItem?.button?.performClick(nil)
+        statusItem?.menu = nil
+    }
+
+    func makeMenu() -> NSMenu {
         let menu = NSMenu()
         if model.session.state.isRecording {
             addItem("Stop Recording", action: #selector(stopRecording), to: menu)
             addItem(model.session.state == .paused ? "Resume" : "Pause", action: #selector(togglePause), to: menu)
         } else {
-            addItem("Record Area…", action: #selector(recordArea), to: menu, enabled: model.canSelect)
-            addItem("Record Window…", action: #selector(recordContent), to: menu, enabled: model.canSelect)
+            addItem("About Kapp", action: #selector(showAbout), to: menu)
+            menu.addItem(.separator())
+            addItem("Preferences…", action: #selector(showPreferences), key: ",", to: menu)
+            menu.addItem(.separator())
+            addItem("Open Video…", action: #selector(openRecording), key: "o", to: menu)
+            menu.addItem(.separator())
+            addItem("Quit Kapp", action: #selector(quit), key: "q", to: menu)
         }
-        menu.addItem(.separator())
-        addItem("Microphone", action: #selector(toggleMicrophone), to: menu,
-                enabled: model.canSelect, checked: model.configuration.captureMicrophone)
-        addItem("System Audio", action: #selector(toggleSystemAudio), to: menu,
-                enabled: model.canSelect, checked: model.configuration.captureSystemAudio)
-        addItem("Show Cursor", action: #selector(toggleCursor), to: menu,
-                enabled: model.canSelect, checked: model.configuration.showCursor)
-        menu.addItem(.separator())
-        addItem("Open Recording…", action: #selector(openRecording), to: menu, enabled: model.canSelect)
-        addItem("Quit Kapp", action: #selector(quit), to: menu)
-        statusItem?.menu = menu
-        statusItem?.button?.performClick(nil)
-        statusItem?.menu = nil
+        return menu
     }
 
-    private func addItem(_ title: String, action: Selector, to menu: NSMenu,
-                         enabled: Bool = true, checked: Bool = false) {
+    private func addItem(_ title: String, action: Selector, key: String = "", to menu: NSMenu) {
         menu.autoenablesItems = false
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
-        item.isEnabled = enabled
-        item.state = checked ? .on : .off
         menu.addItem(item)
     }
 
-    @objc private func recordArea() { Task { await model.selectArea() } }
-    @objc private func recordContent() { Task { await model.selectContent() } }
     @objc private func stopRecording() { Task { await model.stop() } }
     @objc private func togglePause() { model.session.togglePause() }
-    @objc private func toggleMicrophone() { model.configuration.captureMicrophone.toggle() }
-    @objc private func toggleSystemAudio() { model.configuration.captureSystemAudio.toggle() }
-    @objc private func toggleCursor() { model.configuration.showCursor.toggle() }
     @objc private func quit() { NSApp.terminate(nil) }
+
+    @objc func showAbout() {
+        model.cancelSelection()
+        NSApp.activate()
+        let credits = NSAttributedString(string: "GitHub", attributes: [.link: URL(string: "https://github.com/jinghaihan/kapp")!])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Kapp", .credits: credits])
+    }
+
+    @objc func showPreferences() {
+        model.cancelSelection()
+        if preferences == nil {
+            let controller = PreferencesWindowController(settings: settings)
+            controller.onClose = { [weak self] in
+                self?.preferences = nil
+                self?.restoreMenuBarMode()
+            }
+            preferences = controller
+        }
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        preferences?.showWindow(nil)
+        preferences?.window?.makeKeyAndOrderFront(nil)
+    }
 
     @objc func openRecording() {
         guard model.session.state == .idle else { return }
@@ -118,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.begin { [weak self] response in
             guard let self else { return }
             if response == .OK, let url = panel.url { self.openEditor(source: url) }
-            else if self.editors.isEmpty { NSApp.setActivationPolicy(.accessory) }
+            else { self.restoreMenuBarMode() }
         }
     }
 
@@ -148,10 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editor.onClose = { [weak self] in
             guard let self else { return }
             self.editors.removeValue(forKey: id)
-            // Let AppKit finish closing the window before changing the app's visibility.
-            Task { @MainActor [weak self] in
-                if self?.editors.isEmpty == true { NSApp.setActivationPolicy(.accessory) }
-            }
+            self.restoreMenuBarMode()
         }
         editors[id] = editor
         NSApp.setActivationPolicy(.regular)
@@ -180,5 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let window = editor.window, !editor.windowShouldClose(window) { return false }
         }
         return true
+    }
+
+    private func restoreMenuBarMode() {
+        // Wait until AppKit has removed the closing window before changing visibility.
+        Task { @MainActor [weak self] in
+            guard let self, self.editors.isEmpty, self.preferences == nil else { return }
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 }

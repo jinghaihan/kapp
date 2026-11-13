@@ -62,7 +62,7 @@ struct CaptureToolbar: View {
                 icon(controls.isFullScreen ? "exit-fullscreen" : "fullscreen",
                      label: controls.isFullScreen ? "Exit Full Screen" : "Record Full Screen",
                      action: fullScreen).position(x: 332, y: 32)
-                icon("more", label: "Options") { CaptureOptionsMenu.present(model: model, cancel: cancel) }
+                icon("more", label: "Options") { CaptureOptionsMenu.present(model: model) }
                     .position(x: 420, y: 32)
             }
 

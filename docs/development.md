@@ -44,6 +44,7 @@ sources/
   app/                  App entry and recording workflow
     assets/             Retained Kap SVG icons
     components/         Shared native components
+    preferences/        Persistent settings, shortcuts, and native Preferences
     selection/          Area selection, window menu, toolbar, and border
     editor/             Preview, trimming, and export controls
   recording/            ScreenCaptureKit streams, audio, and MP4 writing
