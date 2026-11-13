@@ -46,6 +46,8 @@ final class EditorModel {
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
     @ObservationIgnored private var thumbnailTask: Task<Void, Never>?
+    private var isWindowFocused = true
+    private var resumePlaybackOnFocus = false
 
     init(source: URL) {
         self.source = source
@@ -117,7 +119,10 @@ final class EditorModel {
                     }
                 }
             }
-            if autoPlay { togglePlayback() }
+            if autoPlay {
+                if isWindowFocused { togglePlayback() }
+                else { resumePlaybackOnFocus = true }
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -135,6 +140,18 @@ final class EditorModel {
     func pausePlayback() {
         isPlaying = false
         player.pause()
+    }
+
+    func windowFocusChanged(isFocused: Bool) {
+        guard isWindowFocused != isFocused else { return }
+        isWindowFocused = isFocused
+        if isFocused {
+            if resumePlaybackOnFocus && !isPlaying { togglePlayback() }
+            resumePlaybackOnFocus = false
+        } else {
+            resumePlaybackOnFocus = isPlaying
+            pausePlayback()
+        }
     }
 
     func seek(to time: Double) {

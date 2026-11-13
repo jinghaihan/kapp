@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
         model.onError = { [weak self] error in self?.showError(error) }
-        model.onFinished = { [weak self] source in self?.openEditor(source: source) }
+        model.onFinished = { [weak self] source in self?.openEditor(source: source, isNewRecording: true) }
         observeRecordingState()
         do {
             shortcut = try RecordingShortcut { [weak self] in self?.toggleRecording() }
@@ -142,13 +142,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    private func openEditor(source: URL) {
+    private func openEditor(source: URL, isNewRecording: Bool = false) {
         let id = UUID()
-        let editor = EditorWindowController(source: source)
+        let editor = EditorWindowController(source: source, isNewRecording: isNewRecording)
         editor.onClose = { [weak self] in
             guard let self else { return }
             self.editors.removeValue(forKey: id)
-            if self.editors.isEmpty { NSApp.setActivationPolicy(.accessory) }
+            // Let AppKit finish closing the window before changing the app's visibility.
+            Task { @MainActor [weak self] in
+                if self?.editors.isEmpty == true { NSApp.setActivationPolicy(.accessory) }
+            }
         }
         editors[id] = editor
         NSApp.setActivationPolicy(.regular)
@@ -162,12 +165,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if model.session.state.isRecording {
             Task {
                 await model.stop()
-                sender.reply(toApplicationShouldTerminate: true)
+                sender.reply(toApplicationShouldTerminate: self.confirmClosingEditors())
             }
             return .terminateLater
         }
         guard model.session.state == .idle else { return .terminateCancel }
+        guard confirmClosingEditors() else { return .terminateCancel }
         model.cancelSelection()
         return .terminateNow
+    }
+
+    private func confirmClosingEditors() -> Bool {
+        for editor in Array(editors.values) {
+            if let window = editor.window, !editor.windowShouldClose(window) { return false }
+        }
+        return true
     }
 }
