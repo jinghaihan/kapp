@@ -31,17 +31,3 @@ purple-to-teal palette.
 
 The original MIT license is retained in [third-party-licenses/Kap.txt](third-party-licenses/Kap.txt).
 
-## Documentation imagery
-
-The README overview renders Kapp's native UI components with sample landscape
-content. The landscape is "Grand Tetons in Grand Teton National Park," credited
-to Grand Teton National Park and published by the U.S. Geological Survey. The
-source page identifies the photograph as public domain:
-
-https://www.usgs.gov/media/images/grand-tetons-grand-teton-national-park
-
-The desktop background is "Sunset over an interdunal area," credited to the
-National Park Service / White Sands National Park. NPS identifies it as public
-domain with full granting rights:
-
-https://npgallery.nps.gov/AssetDetail/fc947575-155d-451f-67bd-cd7fbd10c9ce

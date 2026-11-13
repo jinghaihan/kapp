@@ -37,8 +37,6 @@ See [Development](docs/development.md) for build instructions and tests, and [Re
 
 - [Kap](https://github.com/wulkano/Kap) by [Wulkano](https://wulkano.com): the UI design and interaction model, capture and playback icons, and adapted conversion test cases.
 - [BetterCapture](https://github.com/jsattler/BetterCapture) by [Joshua Sattler](https://github.com/jsattler) and contributors: selected recording, audio timing, display sizing, area selection, and selection-border implementations.
-- [Grand Teton National Park / USGS](https://www.usgs.gov/media/images/grand-tetons-grand-teton-national-park): public-domain landscape used in the native UI overview.
-- [White Sands National Park / NPS](https://npgallery.nps.gov/AssetDetail/fc947575-155d-451f-67bd-cd7fbd10c9ce): public-domain desktop background.
 
 See [Third-party notices](THIRD_PARTY_NOTICES.md) for source revisions and retained licenses. Kapp is an independent project and is not affiliated with either upstream project.
 
