@@ -32,6 +32,7 @@ final class TrimRangeControl: NSView {
     var isEnabled = true
     private enum DragTarget { case start, end, seek }
     private var dragging: DragTarget?
+    private var tracking: NSTrackingArea?
 
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -53,9 +54,8 @@ final class TrimRangeControl: NSView {
         let end = x(range.end)
         NSColor.white.withAlphaComponent(0.2).setFill()
         NSBezierPath(roundedRect: NSRect(x: 0, y: y, width: bounds.width, height: 4), xRadius: 2, yRadius: 2).fill()
-        NSColor.white.withAlphaComponent(0.4).setFill()
-        NSBezierPath(roundedRect: NSRect(x: start, y: y, width: end - start, height: 4), xRadius: 2, yRadius: 2).fill()
-        let progress = NSBezierPath(roundedRect: NSRect(x: start, y: y, width: max(0, min(end, x(time)) - start), height: 4), xRadius: 2, yRadius: 2)
+        let fraction = min(1, max(0, (time - range.start) / range.duration))
+        let progress = NSBezierPath(roundedRect: NSRect(x: 0, y: y, width: bounds.width * fraction, height: 4), xRadius: 2, yRadius: 2)
         NSGradient(colors: [NSColor(red: 0.576, green: 0, blue: 1, alpha: 1),
                             NSColor(red: 0.322, green: 0.447, blue: 0.886, alpha: 1),
                             NSColor(red: 0.02, green: 0.902, blue: 0.71, alpha: 1)])?.draw(in: progress, angle: 0)
@@ -72,9 +72,27 @@ final class TrimRangeControl: NSView {
         let startDistance = abs(point.x - x(range.start))
         let endDistance = abs(point.x - x(range.end))
         dragging = min(startDistance, endDistance) <= 10 ? (startDistance <= endDistance ? .start : .end) : .seek
-        model?.beginDragging()
-        update(at: point.x)
+        if dragging != .seek {
+            model?.beginDragging()
+            update(at: point.x)
+        }
     }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let tracking { removeTrackingArea(tracking) }
+        let area = NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self)
+        addTrackingArea(area)
+        tracking = area
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        guard dragging == nil || dragging == .seek else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        model?.showThumbnail(at: min(1, max(0, point.x / max(1, bounds.width))))
+    }
+
+    override func mouseExited(with event: NSEvent) { model?.hideThumbnail() }
 
     override func resetCursorRects() {
         guard let range else { return }
@@ -85,14 +103,16 @@ final class TrimRangeControl: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         guard dragging != nil else { return }
-        update(at: convert(event.locationInWindow, from: nil).x)
+        if dragging == .seek { mouseMoved(with: event) }
+        else { update(at: convert(event.locationInWindow, from: nil).x) }
     }
 
     override func mouseUp(with event: NSEvent) {
         guard dragging != nil else { return }
         update(at: convert(event.locationInWindow, from: nil).x)
+        let wasResizing = dragging != .seek
         dragging = nil
-        model?.endDragging()
+        if wasResizing { model?.endDragging() }
     }
 
     override func keyDown(with event: NSEvent) {
@@ -110,7 +130,10 @@ final class TrimRangeControl: NSView {
         switch dragging {
         case .start: model?.updateTrim(start: value)
         case .end: model?.updateTrim(end: value)
-        case .seek: model?.seek(to: value)
+        case .seek:
+            if let range {
+                model?.seek(to: range.start + min(1, max(0, position / max(1, bounds.width))) * range.duration)
+            }
         case nil: break
         }
     }

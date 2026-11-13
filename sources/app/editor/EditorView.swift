@@ -9,6 +9,7 @@ struct EditorView: View {
     @State private var destinationAnchor = NSView()
     @State private var percentageAnchor = NSView()
     @State private var fpsOpen = false
+    @State private var hovering = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,7 +45,7 @@ struct EditorView: View {
                         .popover(isPresented: $fpsOpen, arrowEdge: .bottom) {
                             Slider(value: Binding(get: { Double(model.frameRate) },
                                                   set: { model.setFrameRate(Int($0.rounded())) }),
-                                   in: 1...Double(max(2, model.originalFrameRate)), step: 1)
+                                   in: Double(min(5, model.maximumFrameRate))...Double(max(6, model.maximumFrameRate)), step: 1)
                                 .frame(width: 160).padding(12)
                         }
                 }
@@ -93,6 +94,16 @@ struct EditorView: View {
             .background(Color(white: 0.13))
         }
         .preferredColorScheme(.dark)
+        .overlay(alignment: .top) {
+            Text(model.source.lastPathComponent)
+                .font(.system(size: 14)).foregroundStyle(.white)
+                .lineLimit(1).padding(.horizontal, 100)
+                .frame(maxWidth: .infinity).frame(height: 36)
+                .background(LinearGradient(colors: [.black.opacity(0.4), .clear], startPoint: .top, endPoint: .bottom))
+                .opacity(hovering ? 1 : 0)
+                .allowsHitTesting(false)
+        }
+        .onHover { hovering = $0 }
         .ignoresSafeArea()
         .task { await model.load() }
         .alert("Kapp", isPresented: Binding(

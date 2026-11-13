@@ -19,6 +19,10 @@ final class EditorModel {
     private(set) var outputWidth = 0
     private(set) var outputHeight = 0
     private(set) var frameRate = 60
+    private(set) var hoverTime: Double?
+    private(set) var thumbnail: NSImage?
+    private(set) var hoverFraction = 0.0
+    private(set) var isResizingRange = false
     var format: ExportFormat = .mp4 {
         didSet {
             player.isMuted = muted || format == .gif
@@ -41,7 +45,7 @@ final class EditorModel {
     private(set) var fullDuration: Double = 0
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
-    @ObservationIgnored private var resumeAfterDragging = false
+    @ObservationIgnored private var thumbnailTask: Task<Void, Never>?
 
     init(source: URL) {
         self.source = source
@@ -50,7 +54,7 @@ final class EditorModel {
 
     var canExport: Bool { range != nil && !isExporting }
     private var filename: String { source.deletingPathExtension().lastPathComponent + "." + format.fileExtension }
-    private var maximumFrameRate: Int { min(originalFrameRate, format == .gif ? 50 : 60) }
+    var maximumFrameRate: Int { min(originalFrameRate, 60) }
     private var savedFrameRate: Int {
         let saved = UserDefaults.standard.integer(forKey: "export-fps-\(format.rawValue)")
         return saved > 0 ? saved : (format == .gif ? 15 : 60)
@@ -71,7 +75,7 @@ final class EditorModel {
     }
 
     func setFrameRate(_ value: Int) {
-        frameRate = min(maximumFrameRate, max(1, value))
+        frameRate = min(maximumFrameRate, max(min(5, maximumFrameRate), value))
         copied = false
     }
 
@@ -139,13 +143,42 @@ final class EditorModel {
     }
 
     func beginDragging() {
-        resumeAfterDragging = isPlaying
+        hideThumbnail()
+        isResizingRange = true
         pausePlayback()
     }
 
     func endDragging() {
-        if resumeAfterDragging { togglePlayback() }
-        resumeAfterDragging = false
+        isResizingRange = false
+        hideThumbnail()
+        if !isPlaying { togglePlayback() }
+    }
+
+    func showThumbnail(at fraction: Double) {
+        guard let range else { return }
+        hoverFraction = min(1, max(0, fraction))
+        let time = range.start + hoverFraction * range.duration
+        if let hoverTime, abs(time - hoverTime) < 0.05 { return }
+        hoverTime = time
+        thumbnailTask?.cancel()
+        thumbnailTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(40))
+                let generator = AVAssetImageGenerator(asset: AVURLAsset(url: source))
+                generator.appliesPreferredTrackTransform = true
+                generator.maximumSize = CGSize(width: 264, height: 152)
+                let result = try await generator.image(at: CMTime(seconds: min(time, fullDuration - 1.0 / 600), preferredTimescale: 600))
+                try Task.checkCancellation()
+                thumbnail = NSImage(cgImage: result.image, size: .zero)
+            } catch {}
+        }
+    }
+
+    func hideThumbnail() {
+        thumbnailTask?.cancel()
+        thumbnailTask = nil
+        hoverTime = nil
+        thumbnail = nil
     }
 
     func updateTrim(start: Double? = nil, end: Double? = nil) {
@@ -158,6 +191,10 @@ final class EditorModel {
         copied = false
         updatePlaybackBounds()
         seek(to: start != nil ? updated.start : updated.end)
+        if isResizingRange {
+            hoverTime = currentTime
+            hoverFraction = (start != nil ? updated.start : updated.end) / fullDuration
+        }
     }
 
     private func updatePlaybackBounds() {
@@ -238,6 +275,7 @@ final class EditorModel {
     func cancelExport() { exportTask?.cancel() }
 
     func close() {
+        hideThumbnail()
         cancelExport()
         pausePlayback()
         if let timeObserver { player.removeTimeObserver(timeObserver) }

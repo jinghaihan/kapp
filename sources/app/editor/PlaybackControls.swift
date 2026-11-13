@@ -14,7 +14,7 @@ struct PlaybackControls: View {
                     .help("Play / Pause (Space)")
                     .accessibilityLabel(model.isPlaying ? "Pause" : "Play")
                     .keyboardShortcut(.space, modifiers: [])
-                    Text(timestamp(max(0, model.currentTime - (model.range?.start ?? 0))))
+                    Text(timestamp(model.currentTime))
                         .monospacedDigit()
                     Spacer(minLength: 0)
                 }
@@ -23,6 +23,22 @@ struct PlaybackControls: View {
 
                 TrimRangeView(model: model)
                     .frame(width: geometry.size.width * 0.6, height: 32)
+                    .overlay(alignment: .bottomLeading) {
+                        if let time = model.hoverTime, model.thumbnail != nil || model.isResizingRange {
+                            VStack(spacing: 0) {
+                                if let thumbnail = model.thumbnail, !model.isResizingRange {
+                                    Image(nsImage: thumbnail).resizable().aspectRatio(contentMode: .fit)
+                                        .frame(width: 132, height: 72).background(.black)
+                                }
+                                Text(previewTimestamp(max(0, time - (model.range?.start ?? 0))) + " (" + previewTimestamp(model.range?.duration ?? 0) + ")")
+                                    .font(.system(size: 10)).frame(width: 132, height: 16)
+                                    .background(.black.opacity(0.8))
+                            }
+                            .clipShape(.rect(cornerRadius: 4))
+                            .offset(x: geometry.size.width * 0.6 * model.hoverFraction - 66, y: -36)
+                            .allowsHitTesting(false)
+                        }
+                    }
 
                 HStack(spacing: 16) {
                     Spacer(minLength: 0)
@@ -33,6 +49,10 @@ struct PlaybackControls: View {
                     .disabled(model.format == .gif || model.isExporting)
                     .accessibilityLabel("Mute")
                     .help("Mute Audio")
+                    Button { model.playerView?.window?.toggleFullScreen(nil) } label: {
+                        KapIcon(name: "fullscreen")
+                    }
+                    .accessibilityLabel("Toggle Full Screen")
                 }
                 .padding(.horizontal, 16)
                 .frame(width: geometry.size.width * 0.2)
@@ -50,5 +70,10 @@ struct PlaybackControls: View {
         let total = max(0, Int(seconds))
         let remainder = total % 60
         return "\(total / 60):\(remainder < 10 ? "0" : "")\(remainder)"
+    }
+
+    private func previewTimestamp(_ seconds: Double) -> String {
+        let hundredths = max(0, Int(seconds * 100))
+        return String(format: "%d:%02d.%02d", hundredths / 6000, hundredths / 100 % 60, hundredths % 100)
     }
 }
