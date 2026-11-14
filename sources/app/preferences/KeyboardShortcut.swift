@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 import Carbon
 
@@ -14,7 +15,7 @@ struct KeyboardShortcut: Codable, Equatable {
 
     var displayName: String {
         [(controlKey, "⌃"), (optionKey, "⌥"), (shiftKey, "⇧"), (cmdKey, "⌘")]
-            .filter { modifiers & UInt32($0.0) != 0 }.map(\.1).joined() + key
+            .filter { modifiers & UInt32($0.0) != 0 }.map(\.1).joined() + (key == "Space" ? tr("Space") : key)
     }
 
     init(keyCode: UInt32, modifiers: UInt32, key: String) {

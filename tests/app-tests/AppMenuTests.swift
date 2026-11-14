@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import KappLocalization
 import Testing
 @testable import Kapp
 
@@ -8,9 +9,9 @@ struct AppMenuTests {
     @Test func idleMenuContainsOnlyTheAgreedEntries() throws {
         _ = NSApplication.shared
         let menu = AppDelegate().makeMenu()
-        #expect(menu.items.filter { !$0.isSeparatorItem }.map(\.title) == ["About Kapp", "Preferences…", "Open Video…", "Quit Kapp"])
-        #expect(menu.items.first { $0.title == "Preferences…" }?.keyEquivalent == ",")
-        #expect(menu.items.first { $0.title == "Open Video…" }?.keyEquivalent == "o")
+        #expect(menu.items.filter { !$0.isSeparatorItem }.map(\.title) == ["About Kapp", "Preferences…", "Open Video…", "Quit Kapp"].map { tr($0) })
+        #expect(menu.items.first { $0.title == tr("Preferences…") }?.keyEquivalent == ",")
+        #expect(menu.items.first { $0.title == tr("Open Video…") }?.keyEquivalent == "o")
     }
 
     @Test func shortcutLabelsUseTheUnshiftedKeyAndRequireAModifier() throws {

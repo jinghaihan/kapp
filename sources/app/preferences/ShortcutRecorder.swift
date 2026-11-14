@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 import SwiftUI
 
@@ -7,7 +8,7 @@ struct ShortcutRecorder: NSViewRepresentable {
     func makeNSView(context: Context) -> ShortcutRecorderControl {
         let view = ShortcutRecorderControl()
         view.settings = settings
-        view.setAccessibilityLabel("Recording shortcut")
+        view.setAccessibilityLabel(tr("Recording shortcut"))
         return view
     }
 
@@ -82,7 +83,7 @@ final class ShortcutRecorderControl: NSControl {
         (recording ? NSColor.keyboardFocusIndicatorColor : NSColor.separatorColor).setStroke()
         border.lineWidth = 1
         border.stroke()
-        let text = recording ? "Press shortcut…" : settings?.shortcut.displayName ?? ""
+        let text = recording ? tr("Press shortcut…") : settings?.shortcut.displayName ?? ""
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12),
             .foregroundColor: isEnabled ? NSColor.labelColor : NSColor.disabledControlTextColor

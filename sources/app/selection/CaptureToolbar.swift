@@ -1,4 +1,5 @@
 // Layout adapted from Kap's 464×64 action bar. MIT; see third-party-licenses/Kap.txt.
+import KappLocalization
 import SwiftUI
 
 struct CaptureToolbar: View {
@@ -22,8 +23,8 @@ struct CaptureToolbar: View {
                     Button { controls.advanced = false } label: {
                         Image(systemName: "chevron.left").frame(width: 24, height: 24)
                     }
-                    .help("Back")
-                    Menu("Ratio") {
+                    .help(tr("Back"))
+                    Menu(tr("Ratio")) {
                         ForEach(["4:3", "16:9", "1:1", "9:16"], id: \.self) { ratio in
                             Button(ratio) {
                                 let values = ratio.split(separator: ":").compactMap { Int($0) }
@@ -39,7 +40,7 @@ struct CaptureToolbar: View {
                         Image(systemName: controls.ratioLocked ? "link" : "link.badge.plus")
                             .frame(width: 32, height: 32)
                     }
-                    .help("Lock Aspect Ratio")
+                    .help(tr("Lock Aspect Ratio"))
                 }
                 .frame(width: 200)
                 .position(x: 100, y: 32)
@@ -49,7 +50,7 @@ struct CaptureToolbar: View {
                     Button { resize(controls.height, controls.width) } label: {
                         Image(systemName: "arrow.left.arrow.right").frame(width: 24, height: 24)
                     }
-                    .help("Swap Dimensions")
+                    .help(tr("Swap Dimensions"))
                     dimension($controls.height, label: "Height")
                 }
                 .frame(width: 200)
@@ -77,9 +78,9 @@ struct CaptureToolbar: View {
                 }
                 .frame(width: 48, height: 48)
             }
-            .accessibilityLabel("Start Recording")
+            .accessibilityLabel(tr("Start Recording"))
             .disabled(controls.width == 0 || controls.height == 0)
-            .help("Start Recording (Return)")
+            .help(tr("Start Recording (Return)"))
             .position(x: 232, y: 32)
         }
         .buttonStyle(.plain)
@@ -97,12 +98,12 @@ struct CaptureToolbar: View {
 
     private func icon(_ name: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { KapIcon(name: name).frame(width: 40, height: 40) }
-            .accessibilityLabel(label)
-            .help(label)
+            .accessibilityLabel(tr(label))
+            .help(tr(label))
     }
 
     private func dimension(_ value: Binding<Int>, label: String) -> some View {
-        TextField(label, value: value, format: .number.grouping(.never))
+        TextField(tr(label), value: value, format: .number.grouping(.never))
             .textFieldStyle(.plain)
             .font(.system(size: 12))
             .padding(.horizontal, 8)
@@ -110,6 +111,6 @@ struct CaptureToolbar: View {
             .background(dark ? .white.opacity(0.1) : .white, in: .rect(cornerRadius: 4))
             .overlay { RoundedRectangle(cornerRadius: 4).strokeBorder(dark ? .clear : Color(white: 0.86), lineWidth: 1) }
             .onSubmit { resize(controls.width, controls.height) }
-            .accessibilityLabel(label)
+            .accessibilityLabel(tr(label))
     }
 }

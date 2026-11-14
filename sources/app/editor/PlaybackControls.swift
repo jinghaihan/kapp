@@ -1,4 +1,5 @@
 // Layout and colours adapted from Kap's playback controls. MIT; see third-party-licenses/Kap.txt.
+import KappLocalization
 import SwiftUI
 
 struct PlaybackControls: View {
@@ -11,8 +12,8 @@ struct PlaybackControls: View {
                     Button { model.togglePlayback() } label: {
                         KapIcon(name: model.isPlaying ? "pause" : "play", size: 26)
                     }
-                    .help("Play / Pause (Space)")
-                    .accessibilityLabel(model.isPlaying ? "Pause" : "Play")
+                    .help(tr("Play / Pause (Space)"))
+                    .accessibilityLabel(tr(model.isPlaying ? "Pause" : "Play"))
                     .keyboardShortcut(.space, modifiers: [])
                     Text(timestamp(model.currentTime))
                         .monospacedDigit()
@@ -47,12 +48,12 @@ struct PlaybackControls: View {
                         KapIcon(name: model.muted || model.format == .gif ? "volume-off" : "volume-high")
                     }
                     .disabled(model.format == .gif || model.isExporting)
-                    .accessibilityLabel("Mute")
-                    .help("Mute Audio")
+                    .accessibilityLabel(tr("Mute"))
+                    .help(tr("Mute Audio"))
                     Button { model.playerView?.window?.toggleFullScreen(nil) } label: {
                         KapIcon(name: "fullscreen")
                     }
-                    .accessibilityLabel("Toggle Full Screen")
+                    .accessibilityLabel(tr("Toggle Full Screen"))
                 }
                 .padding(.horizontal, 16)
                 .frame(width: geometry.size.width * 0.2)

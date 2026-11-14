@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 import SwiftUI
 
@@ -9,10 +10,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
     var confirmDiscard: (NSWindow) -> Bool = { _ in
         let alert = NSAlert()
-        alert.messageText = "Are you sure that you want to discard this recording?"
-        alert.informativeText = "The original recording will be deleted."
-        alert.addButton(withTitle: "Discard")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = tr("Are you sure that you want to discard this recording?")
+        alert.informativeText = tr("The original recording will be deleted.")
+        alert.addButton(withTitle: tr("Discard"))
+        alert.addButton(withTitle: tr("Cancel"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 

@@ -1,10 +1,24 @@
 import Carbon
 import Foundation
 import Testing
+import KappLocalization
 @testable import Kapp
 
 @MainActor
 struct AppSettingsTests {
+    @Test func languageChoiceSurvivesRestartAndCanFollowTheSystemAgain() {
+        let store = defaults()
+        let settings = AppSettings(defaults: store, loginItem: TestLoginItem(), localization: Localization(preferredLanguages: ["ja"]))
+        settings.language = "zh-Hant"
+        let localization = Localization(preferredLanguages: ["ko"])
+        let reloaded = AppSettings(defaults: store, loginItem: TestLoginItem(), localization: localization)
+        #expect(reloaded.language == "zh-Hant")
+        #expect(localization.language == "zh-Hant")
+        reloaded.language = nil
+        #expect(store.string(forKey: "app-language") == nil)
+        #expect(localization.language == "ko")
+    }
+
     private func defaults() -> UserDefaults {
         UserDefaults(suiteName: "kapp-tests-\(UUID().uuidString)")!
     }

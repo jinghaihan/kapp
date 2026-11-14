@@ -1,0 +1,3 @@
+// System permission descriptions for Kapp.
+"NSScreenCaptureUsageDescription" = "Kapp records the screen, window or area you select.";
+"NSMicrophoneUsageDescription" = "Kapp uses your microphone when microphone recording is enabled.";

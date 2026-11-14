@@ -1,0 +1,3 @@
+// System permission descriptions for Kapp.
+"NSScreenCaptureUsageDescription" = "選択した画面、ウインドウ、範囲をKappで録画します。";
+"NSMicrophoneUsageDescription" = "マイク録音を有効にすると、Kappがマイクを使用します。";

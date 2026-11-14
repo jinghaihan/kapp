@@ -1,4 +1,5 @@
 // Row structure follows Kap's Preferences: labels, trailing controls, and thin dividers.
+import KappLocalization
 import AVFoundation
 import ServiceManagement
 import SwiftUI
@@ -9,6 +10,13 @@ struct PreferencesView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                row("Language") {
+                    let choices: [String?] = [nil] + Localization.languages.map { Optional($0) }
+                    PreferencesSelect(label: "Language", titles: [tr("Follow System")] + Localization.languages.map { Localization.languageNames[$0]! },
+                                      selected: choices.firstIndex(of: settings.language) ?? 0, width: 160) {
+                        settings.language = choices[$0]
+                    }
+                }
                 row("Show cursor") { toggle($settings.showCursor) }
                 row("Highlight clicks", nested: true) {
                     toggle($settings.highlightClicks).disabled(!settings.showCursor)
@@ -26,7 +34,7 @@ struct PreferencesView: View {
                     row("Input device", nested: true) {
                         let devices = settings.audioDevices
                         let selected = devices.firstIndex { $0.id == settings.microphoneDeviceID }.map { $0 + 1 } ?? 0
-                        PreferencesSelect(label: "Input device", titles: ["System Default"] + devices.map(\.name), selected: selected, width: 208) { index in
+                        PreferencesSelect(label: "Input device", titles: [tr("System Default")] + devices.map(\.name), selected: selected, width: 208) { index in
                             settings.microphoneDeviceID = index == 0 ? nil : devices[index - 1].id
                         }
                     }
@@ -42,19 +50,19 @@ struct PreferencesView: View {
                 }
                 if settings.loginRequiresApproval {
                     row("Allow Kapp in Login Items", nested: true) {
-                        Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
+                        Button(tr("Open System Settings…")) { SMAppService.openSystemSettingsLoginItems() }
                             .buttonStyle(KapPreferencesButtonStyle())
                     }
                 }
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Save to…").fontWeight(.medium)
+                        Text(tr("Save to…")).fontWeight(.medium)
                         Text((settings.exportDirectory.path as NSString).abbreviatingWithTildeInPath)
                             .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                             .help(settings.exportDirectory.path)
                     }
                     Spacer(minLength: 12)
-                    Button("Choose…", action: chooseDirectory)
+                    Button(tr("Choose…"), action: chooseDirectory)
                         .buttonStyle(KapPreferencesButtonStyle())
                 }
                 .padding(.horizontal, 24).padding(.vertical, 20)
@@ -68,8 +76,8 @@ struct PreferencesView: View {
         .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification)) { _ in settings.refreshAudioDevices() }
         .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasDisconnectedNotification)) { _ in settings.refreshAudioDevices() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in settings.refreshLoginStatus() }
-        .alert("Could Not Update Preferences", isPresented: Binding(get: { settings.errorMessage != nil }, set: { if !$0 { settings.errorMessage = nil } })) {
-            Button("OK", role: .cancel) { settings.errorMessage = nil }
+        .alert(tr("Could Not Update Preferences"), isPresented: Binding(get: { settings.errorMessage != nil }, set: { if !$0 { settings.errorMessage = nil } })) {
+            Button(tr("OK"), role: .cancel) { settings.errorMessage = nil }
         } message: { Text(settings.errorMessage ?? "") }
     }
 
@@ -80,9 +88,9 @@ struct PreferencesView: View {
     private func row<Control: View>(_ title: String, nested: Bool = false, @ViewBuilder control: () -> Control) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
-                Text(title).fontWeight(nested ? .regular : .medium).foregroundStyle(nested ? .secondary : .primary)
+                Text(tr(title)).fontWeight(nested ? .regular : .medium).foregroundStyle(nested ? .secondary : .primary)
                 Spacer(minLength: 16)
-                control().accessibilityLabel(title)
+                control().accessibilityLabel(tr(title))
             }
             .padding(.horizontal, 24).padding(.vertical, nested ? 12 : 20)
             Divider().padding(.horizontal, 24)
@@ -127,7 +135,7 @@ private struct PreferencesSelect: View {
         }
         .buttonStyle(.plain)
         .background(EditorMenuAnchor(view: anchor).allowsHitTesting(false))
-        .accessibilityLabel(label)
+        .accessibilityLabel(tr(label))
         .accessibilityValue(titles[selected])
     }
 }
@@ -169,7 +177,7 @@ private struct KapPreferencesToggleStyle: ToggleStyle {
             .opacity(isEnabled ? 1 : 0.4)
         }
         .buttonStyle(.plain)
-        .accessibilityValue(configuration.isOn ? "On" : "Off")
+        .accessibilityValue(tr(configuration.isOn ? "On" : "Off"))
         .animation(.easeInOut(duration: 0.12), value: configuration.isOn)
     }
 }

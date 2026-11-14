@@ -60,6 +60,12 @@ third-party-licenses/   Retained third-party license notices
 
 `KappRecording` is a separate Swift package target. It accepts a content filter, capture options, and an output URL without depending on the app or selection UI. Recordings use H.264/AAC in MP4. No third-party runtime dependencies are required.
 
+## Localization
+
+Interface and recording error strings live in `sources/localization/resources`, with English keys shared by the app and recording targets. Keep all five `Localizable.strings` catalogs complete and preserve format placeholders. `InfoPlist.strings` contains the system permission descriptions; the app build copies these into the main bundle's localization directories.
+
+Language selection follows macOS language preferences, including region and Chinese script variants, and falls back to English. Preferences also supports a persistent manual override; interface strings update immediately when it changes. Run `swift test --filter LocalizationTests` to check language matching, manual switching, fallback, catalog coverage, and format placeholders.
+
 ## Branding
 
 `design/AppIcon-concept.png` retains the original concept artwork. `design/AppIcon.png` is the transparent brand artwork used in the README. The icon generator adds a solid white rounded background only to the packaged app icon in `resources/AppIcon.png` and `resources/AppIcon.icns`. Regenerate it with:

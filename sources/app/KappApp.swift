@@ -1,3 +1,4 @@
+import KappLocalization
 import SwiftUI
 
 @main
@@ -8,14 +9,14 @@ struct KappApp: App {
         Settings { EmptyView() }
             .commands {
                 CommandGroup(replacing: .appInfo) {
-                    Button("About Kapp") { delegate.showAbout() }
+                    Button(tr("About Kapp")) { delegate.showAbout() }
                 }
                 CommandGroup(replacing: .appSettings) {
-                    Button("Preferences…") { delegate.showPreferences() }
+                    Button(tr("Preferences…")) { delegate.showPreferences() }
                         .keyboardShortcut(",", modifiers: .command)
                 }
                 CommandGroup(after: .newItem) {
-                    Button("Open Video…") { delegate.openRecording() }
+                    Button(tr("Open Video…")) { delegate.openRecording() }
                         .keyboardShortcut("o", modifiers: .command)
                 }
             }

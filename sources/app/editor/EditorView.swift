@@ -1,4 +1,5 @@
 // Preview layout follows Kap: video controls over the picture, a 48pt export row below.
+import KappLocalization
 import AppKit
 import SwiftUI
 
@@ -19,7 +20,7 @@ struct EditorView: View {
                 .overlay(alignment: .bottom) { PlaybackControls(model: model) }
             HStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    Text("Size")
+                    Text(tr("Size"))
                     HStack(spacing: 1) {
                         ExportNumberField(value: model.outputWidth, label: "Width", width: 48, update: model.setWidth)
                         ExportNumberField(value: model.outputHeight, label: "Height", width: 48, update: model.setHeight)
@@ -30,10 +31,10 @@ struct EditorView: View {
                             let width = Int((model.sourceSize.width * Double(percent) / 100).rounded())
                             let ratio = model.sourceSize.width / model.sourceSize.height
                             let height = Int(ratio > 1 ? ceil(Double(width) / ratio) : floor(Double(width) / ratio))
-                            return "\(width) × \(height) (\(percent == 100 ? "Original" : "\(percent)%"))"
+                            return "\(width) × \(height) (\(percent == 100 ? tr("Original") : "\(percent)%"))"
                         }
                         let custom = !percentages.contains(percentage)
-                        EditorOptionsMenu.present(titles: custom ? ["Custom"] + titles : titles,
+                        EditorOptionsMenu.present(titles: custom ? [tr("Custom")] + titles : titles,
                             selected: custom ? 0 : (percentages.firstIndex(of: percentage) ?? 0),
                             anchoredTo: percentageAnchor) {
                             if custom && $0 == 0 { return }
@@ -43,8 +44,8 @@ struct EditorView: View {
                     } label: { selectorLabel("\(percentage)%", width: 68) }
                     .buttonStyle(.plain)
                     .background(EditorMenuAnchor(view: percentageAnchor).allowsHitTesting(false))
-                    .accessibilityLabel("Output Scale")
-                    Text("FPS")
+                    .accessibilityLabel(tr("Output Scale"))
+                    Text(tr("FPS"))
                     ExportNumberField(value: model.frameRate, label: "Frame Rate", width: 32,
                                       update: model.setFrameRate, focused: { fpsOpen = true })
                         .popover(isPresented: $fpsOpen, arrowEdge: .bottom) {
@@ -65,27 +66,27 @@ struct EditorView: View {
                 } label: { selectorLabel(model.format.rawValue, width: 112) }
                 .buttonStyle(.plain)
                 .background(EditorMenuAnchor(view: formatAnchor).allowsHitTesting(false))
-                .accessibilityLabel("Export Format")
+                .accessibilityLabel(tr("Export Format"))
                 .disabled(model.isExporting)
 
                 Button {
                     EditorOptionsMenu.present(
-                        titles: ["Save to Disk", "Copy to Clipboard"],
+                        titles: [tr("Save to Disk"), tr("Copy to Clipboard")],
                         selected: copyToClipboard ? 1 : 0,
                         anchoredTo: destinationAnchor
                     ) { copyToClipboard = $0 == 1 }
-                } label: { selectorLabel(copyToClipboard ? "Copy to Clipboard" : "Save to Disk", width: 128) }
+                } label: { selectorLabel(copyToClipboard ? tr("Copy to Clipboard") : tr("Save to Disk"), width: 128) }
                 .buttonStyle(.plain)
                 .background(EditorMenuAnchor(view: destinationAnchor).allowsHitTesting(false))
-                .accessibilityLabel("Export Destination")
+                .accessibilityLabel(tr("Export Destination"))
                 .disabled(model.isExporting)
 
                 if model.isExporting {
                     ProgressView().controlSize(.small)
-                    Button("Cancel") { model.cancelExport() }
+                    Button(tr("Cancel")) { model.cancelExport() }
                         .buttonStyle(KapEditorButtonStyle())
                 } else {
-                    Button(model.copied && copyToClipboard ? "Copied" : "Convert") {
+                    Button(tr(model.copied && copyToClipboard ? "Copied" : "Convert")) {
                         if copyToClipboard { model.copy() } else { Task { await model.save() } }
                     }
                     .buttonStyle(KapEditorButtonStyle())
@@ -115,7 +116,7 @@ struct EditorView: View {
             get: { model.errorMessage != nil },
             set: { if !$0 { model.errorMessage = nil } }
         )) {
-            Button("OK", role: .cancel) { model.errorMessage = nil }
+            Button(tr("OK"), role: .cancel) { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
     }
 
@@ -125,7 +126,8 @@ struct EditorView: View {
     }
 
     private func selectorLabel(_ text: String, width: CGFloat) -> some View {
-        HStack(spacing: 4) {
+        let contentWidth = (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 12)]).width + 28
+        return HStack(spacing: 4) {
             Text(text)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
@@ -133,7 +135,7 @@ struct EditorView: View {
             Image(systemName: "chevron.down").font(.system(size: 9))
         }
         .padding(.horizontal, 8)
-        .frame(width: width, height: 24)
+        .frame(width: max(width, ceil(contentWidth)), height: 24)
         .background(.white.opacity(0.1), in: .rect(cornerRadius: 4))
     }
 }
@@ -154,7 +156,7 @@ private struct ExportNumberField: View {
             .focused($editing)
             .frame(width: width, height: 24)
             .background(.white.opacity(0.1), in: .rect(cornerRadius: 4))
-            .accessibilityLabel(label)
+            .accessibilityLabel(tr(label))
             .onAppear { text = String(value) }
             .onChange(of: value) { _, value in text = String(value) }
             .onChange(of: editing) { _, active in

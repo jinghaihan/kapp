@@ -1,3 +1,4 @@
+import KappLocalization
 import AVFoundation
 import Foundation
 import KappRecording
@@ -32,6 +33,7 @@ final class AppSettings {
     static let shared = AppSettings()
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let loginItem: any LoginItemManaging
+    @ObservationIgnored private let localization: Localization
     @ObservationIgnored var applyShortcut: ((KeyboardShortcut?) throws -> Void)?
 
     var showCursor: Bool {
@@ -46,6 +48,12 @@ final class AppSettings {
     var microphoneDeviceID: String? { didSet { defaults.set(microphoneDeviceID, forKey: "capture-microphone-device") } }
     var captureSystemAudio: Bool { didSet { defaults.set(captureSystemAudio, forKey: "capture-system-audio") } }
     var exportDirectory: URL { didSet { defaults.set(exportDirectory.path, forKey: "default-export-directory") } }
+    var language: String? {
+        didSet {
+            defaults.set(language, forKey: "app-language")
+            localization.selectLanguage(language)
+        }
+    }
     private(set) var shortcutsEnabled: Bool
     private(set) var shortcut: KeyboardShortcut
     private(set) var audioDevices: [AudioInputDevice] = []
@@ -53,9 +61,11 @@ final class AppSettings {
     private(set) var loginRequiresApproval = false
     var errorMessage: String?
 
-    init(defaults: UserDefaults = .standard, loginItem: any LoginItemManaging = SystemLoginItem()) {
+    init(defaults: UserDefaults = .standard, loginItem: any LoginItemManaging = SystemLoginItem(), localization: Localization = .current) {
         self.defaults = defaults
         self.loginItem = loginItem
+        self.localization = localization
+        language = defaults.string(forKey: "app-language").map { Localization.languages.contains($0) ? $0 : "en" }
         let cursorEnabled = defaults.object(forKey: "capture-show-cursor") as? Bool ?? true
         showCursor = cursorEnabled
         highlightClicks = cursorEnabled && defaults.bool(forKey: "capture-highlight-clicks")
@@ -70,6 +80,7 @@ final class AppSettings {
             shortcut = saved
         } else { shortcut = .default }
         refreshLoginStatus()
+        localization.selectLanguage(language)
     }
 
     var recordingConfiguration: RecordingConfiguration {
@@ -86,7 +97,7 @@ final class AppSettings {
     @discardableResult
     func setShortcut(_ value: KeyboardShortcut) -> Bool {
         guard value.isValid else {
-            errorMessage = "Use a shortcut with Command, Control, or Option."
+            errorMessage = tr("Use a shortcut with Command, Control, or Option.")
             return false
         }
         do {
@@ -136,7 +147,7 @@ final class AppSettings {
 
     func setStartAtLogin(_ value: Bool) {
         do { try loginItem.setEnabled(value) }
-        catch { errorMessage = "Could not update Start automatically. " + error.localizedDescription }
+        catch { errorMessage = tr("Could not update Start automatically. %@", error.localizedDescription) }
         refreshLoginStatus()
     }
 }

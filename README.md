@@ -20,6 +20,7 @@ A native macOS screen recorder with area, window, and full-screen capture, a sim
 - **Controls:** Start or stop with a configurable shortcut, initially `⌘⇧5`. Option-click the recording menu bar icon to pause; click it while paused to resume.
 - **Trim:** Preview your recording and drag either endpoint to keep the part you need. Hover over the timeline to preview frames.
 - **Export:** Choose MP4 or GIF, adjust dimensions and frame rate, then save to disk or copy to the clipboard. Original recordings are kept locally.
+- **Languages:** English, Simplified Chinese, Traditional Chinese, Japanese, and Korean. Choose a language in Preferences or follow macOS, with English as the fallback.
 
 ## Get started
 

@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 import Observation
 import ScreenCaptureKit
@@ -44,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             image?.isTemplate = true
             statusItem?.button?.image = image
             let key = settings.shortcutsEnabled ? " (\(settings.shortcut.displayName))" : ""
-            statusItem?.button?.toolTip = (state.isRecording ? "Stop Recording" : "Select Area") + key
+            statusItem?.button?.toolTip = tr(state.isRecording ? "Stop Recording" : "Select Area") + key
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeRecordingState() }
         }
@@ -98,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func addItem(_ title: String, action: Selector, key: String = "", to menu: NSMenu) {
         menu.autoenablesItems = false
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        let item = NSMenuItem(title: tr(title), action: action, keyEquivalent: key)
         item.target = self
         menu.addItem(item)
     }
@@ -149,10 +150,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate()
         let alert = NSAlert()
         if (error as? SCStreamError)?.code == .userDeclined {
-            alert.messageText = "Screen Recording Permission Required"
-            alert.informativeText = "Enable Kapp in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen Kapp.\n\nIf Kapp is already enabled, remove it from the list and add this build again. Local rebuilds with an ad-hoc signature can invalidate the previous permission."
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = tr("Screen Recording Permission Required")
+            alert.informativeText = tr("Enable Kapp in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and reopen Kapp.\n\nIf Kapp is already enabled, remove it from the list and add this build again. Local rebuilds with an ad-hoc signature can invalidate the previous permission.")
+            alert.addButton(withTitle: tr("Open System Settings"))
+            alert.addButton(withTitle: tr("Cancel"))
             if alert.runModal() == .alertFirstButtonReturn,
                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
                 NSWorkspace.shared.open(url)

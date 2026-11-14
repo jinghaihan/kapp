@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 @preconcurrency import ScreenCaptureKit
 
@@ -42,7 +43,7 @@ final class WindowSelectionMenu: NSObject {
             menu.addItem(item)
         }
         if menu.items.isEmpty {
-            let item = NSMenuItem(title: "No windows available", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: tr("No windows available"), action: nil, keyEquivalent: "")
             item.isEnabled = false
             menu.addItem(item)
         }

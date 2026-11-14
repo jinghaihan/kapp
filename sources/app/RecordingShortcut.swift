@@ -1,3 +1,4 @@
+import KappLocalization
 import AppKit
 import Carbon
 
@@ -55,8 +56,8 @@ private enum ShortcutError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .registrationFailed: "Kapp could not register the recording shortcut. You can still record and stop from the menu bar."
-        case .unavailable(let name): "The shortcut \(name) is already in use or unavailable. Choose another shortcut."
+        case .registrationFailed: tr("Kapp could not register the recording shortcut. You can still record and stop from the menu bar.")
+        case .unavailable(let name): tr("The shortcut %@ is already in use or unavailable. Choose another shortcut.", name)
         }
     }
 }
