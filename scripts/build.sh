@@ -22,7 +22,11 @@ cp resources/AppIcon.icns "$app_dir/Contents/Resources/"
 cp LICENSE THIRD_PARTY_NOTICES.md "$app_dir/Contents/Resources/"
 cp -R "$binary_dir/Kapp_Kapp.bundle" "$app_dir/Contents/Resources/"
 cp -R "$binary_dir/Kapp_KappLocalization.bundle" "$app_dir/Contents/Resources/"
-for language_dir in "$binary_dir/Kapp_KappLocalization.bundle/"*.lproj; do
+localization_resources="$binary_dir/Kapp_KappLocalization.bundle"
+if [[ -d "$localization_resources/Contents/Resources" ]]; then
+    localization_resources="$localization_resources/Contents/Resources"
+fi
+for language_dir in "$localization_resources/"*.lproj; do
     language="$(basename "$language_dir")"
     case "$language" in
         zh-hans.lproj) language=zh-Hans.lproj ;;
