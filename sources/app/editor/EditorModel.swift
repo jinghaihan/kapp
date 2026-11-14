@@ -12,6 +12,7 @@ final class EditorModel {
     let player: AVPlayer
     private(set) var range: ClipRange?
     private(set) var isExporting = false
+    private(set) var exportProgress = 0.0
     private(set) var copied = false
     private(set) var currentTime: Double = 0
     private(set) var isPlaying = false
@@ -43,6 +44,7 @@ final class EditorModel {
 
     @ObservationIgnored weak var playerView: AVPlayerView?
     @ObservationIgnored private var exportTask: Task<Void, Never>?
+    @ObservationIgnored private var activeExportID: UUID?
     private(set) var fullDuration: Double = 0
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
@@ -253,6 +255,13 @@ final class EditorModel {
             return
         }
         isExporting = true
+        exportProgress = 0
+        let exportID = UUID()
+        activeExportID = exportID
+        let reportProgress: @MainActor @Sendable (Double) -> Void = { [weak self] value in
+            guard let self, !self.isClosed, self.activeExportID == exportID else { return }
+            self.exportProgress = max(self.exportProgress, min(0.99, max(0, value)))
+        }
         copied = false
         pausePlayback()
         let muted = muted
@@ -266,13 +275,14 @@ final class EditorModel {
                 try? FileManager.default.removeItem(at: staging)
                 isExporting = false
                 exportTask = nil
+                activeExportID = nil
             }
             do {
                 switch format {
                 case .mp4:
-                    try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, settings: settings, to: staging)
+                    try await RecordingExporter.exportMP4(source: source, range: range, muted: muted, settings: settings, to: staging, onProgress: reportProgress)
                 case .gif:
-                    try await GIFExporter.export(source: source, range: range, settings: settings, to: staging)
+                    try await GIFExporter.export(source: source, range: range, settings: settings, to: staging, onProgress: reportProgress)
                 }
                 try Task.checkCancellation()
                 if FileManager.default.fileExists(atPath: destination.path()) {
@@ -284,6 +294,7 @@ final class EditorModel {
                     try RecordingClipboard.copy(file: destination, format: format)
                     copied = true
                 }
+                exportProgress = 1
             } catch {
                 if !Task.isCancelled { errorMessage = error.localizedDescription }
             }

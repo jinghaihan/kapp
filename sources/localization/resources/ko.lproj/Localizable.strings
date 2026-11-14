@@ -93,3 +93,4 @@
 "No video frames were captured. Check screen recording permissions." = "비디오 프레임을 캡처하지 못했습니다. 화면 기록 권한을 확인하세요.";
 "Language" = "언어";
 "Follow System" = "시스템 설정 따르기";
+"Export progress" = "내보내기 진행률";

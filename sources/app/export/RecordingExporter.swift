@@ -4,7 +4,9 @@ import Foundation
 enum RecordingExporter {
     @concurrent
     static func exportMP4(source: URL, range: ClipRange, muted: Bool,
-                         settings: VideoExportSettings? = nil, to destination: URL) async throws {
+                         settings: VideoExportSettings? = nil, to destination: URL,
+                         onProgress: (@MainActor @Sendable (Double) -> Void)? = nil) async throws {
+        await onProgress?(0)
         try settings?.validate()
         guard source.resolvingSymlinksInPath().standardizedFileURL != destination.resolvingSymlinksInPath().standardizedFileURL else {
             throw ExportError.replacesOriginal
@@ -60,9 +62,24 @@ enum RecordingExporter {
             composition.instructions = [instruction]
             session.videoComposition = composition
         }
+        let progressTask = onProgress.map { report in
+            let states = session.states(updateInterval: 0.1)
+            return Task {
+                for await state in states {
+                    guard !Task.isCancelled else { break }
+                    if case .exporting(let progress) = state {
+                        await report(progress.fractionCompleted)
+                    }
+                }
+            }
+        }
+        defer { progressTask?.cancel() }
         do {
             try Task.checkCancellation()
             try await session.export(to: destination, as: .mp4)
+            progressTask?.cancel()
+            await progressTask?.value
+            await onProgress?(1)
         } catch {
             try? FileManager.default.removeItem(at: destination)
             throw error

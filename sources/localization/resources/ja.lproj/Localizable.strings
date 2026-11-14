@@ -93,3 +93,4 @@
 "No video frames were captured. Check screen recording permissions." = "ビデオフレームを取得できませんでした。画面収録の許可を確認してください。";
 "Language" = "言語";
 "Follow System" = "システム設定に従う";
+"Export progress" = "書き出しの進捗";

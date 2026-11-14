@@ -4,7 +4,9 @@ import UniformTypeIdentifiers
 
 enum GIFExporter {
     @concurrent
-    static func export(source: URL, range: ClipRange, settings: VideoExportSettings? = nil, to destination: URL) async throws {
+    static func export(source: URL, range: ClipRange, settings: VideoExportSettings? = nil, to destination: URL,
+                       onProgress: (@MainActor @Sendable (Double) -> Void)? = nil) async throws {
+        await onProgress?(0)
         try settings?.validate()
         guard source.resolvingSymlinksInPath().standardizedFileURL != destination.resolvingSymlinksInPath().standardizedFileURL else {
             throw ExportError.replacesOriginal
@@ -47,10 +49,12 @@ enum GIFExporter {
                         kCGImagePropertyGIFUnclampedDelayTime: delay
                     ]] as CFDictionary)
                 }
+                await onProgress?(min(0.99, Double(index + 1) / Double(count)))
             }
             try Task.checkCancellation()
             guard CGImageDestinationFinalize(output) else { throw ExportError.cannotEncodeGIF }
             try Task.checkCancellation()
+            await onProgress?(1)
         } catch {
             try? FileManager.default.removeItem(at: destination)
             throw error

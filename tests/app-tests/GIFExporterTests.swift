@@ -13,8 +13,13 @@ struct GIFExporterTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let source = try await RecordingFixture.make(in: directory)
         let destination = directory.appending(path: "scaled.gif")
+        var progress: [Double] = []
         try await GIFExporter.export(source: source, range: ClipRange(start: 0, end: 0.5),
-            settings: VideoExportSettings(width: 32, height: 24, frameRate: frameRate), to: destination)
+            settings: VideoExportSettings(width: 32, height: 24, frameRate: frameRate), to: destination,
+            onProgress: { progress.append($0) })
+        #expect(progress.first == 0 && progress.last == 1)
+        #expect(progress.contains { $0 > 0 && $0 < 1 })
+        #expect(zip(progress, progress.dropFirst()).allSatisfy { $0 <= $1 })
         let imageSource = try #require(CGImageSourceCreateWithURL(destination as CFURL, nil))
         #expect(CGImageSourceGetCount(imageSource) == frameRate / 2)
         var duration = 0.0

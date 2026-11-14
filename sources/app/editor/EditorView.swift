@@ -82,7 +82,10 @@ struct EditorView: View {
                 .disabled(model.isExporting)
 
                 if model.isExporting {
-                    ProgressView().controlSize(.small)
+                    Text(model.exportProgress, format: .percent.precision(.fractionLength(0)))
+                        .monospacedDigit()
+                        .frame(minWidth: 32, alignment: .trailing)
+                        .accessibilityLabel(tr("Export progress"))
                     Button(tr("Cancel")) { model.cancelExport() }
                         .buttonStyle(KapEditorButtonStyle())
                 } else {
