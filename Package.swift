@@ -6,14 +6,18 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.macOS("15.2")],
     products: [.executable(name: "Kapp", targets: ["Kapp"])],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1")
+    ],
     targets: [
         .target(name: "KappLocalization", path: "sources/localization", resources: [.process("resources")]),
         .target(name: "KappRecording", dependencies: ["KappLocalization"], path: "sources/recording"),
         .executableTarget(
             name: "Kapp",
-            dependencies: ["KappRecording", "KappLocalization"],
+            dependencies: ["KappRecording", "KappLocalization", .product(name: "Sparkle", package: "Sparkle")],
             path: "sources/app",
-            resources: [.process("assets")]
+            resources: [.process("assets")],
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
         .testTarget(
             name: "RecordingTests",

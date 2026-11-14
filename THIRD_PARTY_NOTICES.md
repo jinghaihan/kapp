@@ -31,3 +31,10 @@ purple-to-teal palette.
 
 The original MIT license is retained in [third-party-licenses/Kap.txt](third-party-licenses/Kap.txt).
 
+## Sparkle
+
+[Sparkle](https://github.com/sparkle-project/Sparkle) provides the native update
+interface, download verification, installation and relaunch. Its license and
+bundled dependency notices are retained in
+[third-party-licenses/Sparkle.txt](third-party-licenses/Sparkle.txt).
+

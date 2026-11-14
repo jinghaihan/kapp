@@ -15,6 +15,9 @@ struct KappApp: App {
                     Button(tr("Preferences…")) { delegate.showPreferences() }
                         .keyboardShortcut(",", modifiers: .command)
                 }
+                CommandGroup(after: .appInfo) {
+                    Button(tr("Check for Updates…")) { delegate.checkForUpdates() }
+                }
                 CommandGroup(after: .newItem) {
                     Button(tr("Open Video…")) { delegate.openRecording() }
                         .keyboardShortcut("o", modifiers: .command)

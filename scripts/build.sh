@@ -33,5 +33,18 @@ for language_dir in "$binary_dir/Kapp_KappLocalization.bundle/"*.lproj; do
     cp "$language_dir/InfoPlist.strings" "$app_language_dir/"
 done
 cp -R third-party-licenses "$app_dir/Contents/Resources/"
+mkdir -p "$app_dir/Contents/Frameworks"
+scratch_dir="$PWD/.build"
+previous_arg=""
+for arg in "$@"; do
+    if [[ "$previous_arg" == --scratch-path ]]; then scratch_dir="$arg"; fi
+    previous_arg="$arg"
+done
+sparkle_framework="$(find "$scratch_dir/artifacts" -path '*/macos-arm64_x86_64/Sparkle.framework' -type d -print -quit)"
+if [[ -z "$sparkle_framework" ]]; then
+    echo 'Sparkle.framework was not found in the SwiftPM artifacts directory.' >&2
+    exit 1
+fi
+ditto "$sparkle_framework" "$app_dir/Contents/Frameworks/Sparkle.framework"
 python3 scripts/sign.py "$app_dir"
 printf '%s\n' "$app_dir"

@@ -25,6 +25,28 @@ Use `patch`, `minor`, or `major` as appropriate. The script updates the app vers
 
 The workflows use the current repository name rather than a hard-coded upstream. CI packages are ad-hoc signed. Developer ID signing and notarization are not configured, and the local development certificate and private key are never uploaded to CI.
 
+## Automatic updates
+
+Sparkle reads `appcast.xml` from the latest GitHub release. The release workflow
+signs the ZIP using the repository's `SPARKLE_PRIVATE_KEY` Actions secret and
+uploads the feed with the downloads before publishing the release. The public
+key is embedded as `SUPublicEDKey` in `resources/Info.plist`. A missing signing
+secret stops the release rather than publishing an unusable update feed.
+
+Keep the matching private key backed up outside the repository. It is separate
+from the local development code-signing certificate. For this repository it is
+stored in the macOS login Keychain under Sparkle's `app.kapp.recorder` account;
+use Sparkle's `generate_keys --account app.kapp.recorder -x <private-file>` to
+export it and `gh secret set SPARKLE_PRIVATE_KEY < <private-file>` to configure
+CI. Delete the exported file afterwards. Never commit private keys.
+
+To generate the feed locally after packaging, set `SPARKLE_PRIVATE_KEY` securely
+in your environment and run `python3 scripts/appcast.py`. The script embeds the
+changelogithub notes and uses the Sparkle tools from the resolved Swift package.
+Only user-initiated update checks are enabled. Downloaded archives are verified
+against the embedded public key before extraction. Updating follows the normal
+quit workflow, including confirmation before discarding an open recording.
+
 ## Local packaging
 
 ```sh

@@ -32,6 +32,18 @@
 	<true/>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/jinghaihan/kapp/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>wi8URKfLh62xc6U5z7dCQ2T+EvnRWOSElJkP6ldF3UU=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Kapp records the screen, window or area you select.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -1,6 +1,7 @@
 import KappLocalization
 import AppKit
 import Observation
+import Sparkle
 import ScreenCaptureKit
 import UniformTypeIdentifiers
 
@@ -13,9 +14,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var editors: [UUID: EditorWindowController] = [:]
     private var preferences: PreferencesWindowController?
     private var isTerminating = false
+    private lazy var updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
+                                         userDriver: UpdateUserDriver(hostBundle: .main, delegate: nil), delegate: nil)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        do { try updater.start() }
+        catch { showError(error) }
         if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
            let image = NSImage(contentsOf: url) {
             NSApp.applicationIconImage = image
@@ -87,6 +92,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             addItem(model.session.state == .paused ? "Resume" : "Pause", action: #selector(togglePause), to: menu)
         } else {
             addItem("About Kapp", action: #selector(showAbout), to: menu)
+            addItem("Check for Updates…", action: #selector(checkForUpdates), to: menu)
+            menu.items.last?.isEnabled = updater.canCheckForUpdates
             menu.addItem(.separator())
             addItem("Preferences…", action: #selector(showPreferences), key: ",", to: menu)
             menu.addItem(.separator())
@@ -107,6 +114,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func stopRecording() { Task { await model.stop() } }
     @objc private func togglePause() { model.session.togglePause() }
     @objc private func quit() { NSApp.terminate(nil) }
+
+    @objc func checkForUpdates() {
+        guard !isTerminating, model.session.state == .idle else { return }
+        model.cancelSelection()
+        updater.checkForUpdates()
+    }
 
     @objc func showAbout() {
         model.cancelSelection()

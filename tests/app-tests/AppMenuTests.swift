@@ -9,7 +9,7 @@ struct AppMenuTests {
     @Test func idleMenuContainsOnlyTheAgreedEntries() throws {
         _ = NSApplication.shared
         let menu = AppDelegate().makeMenu()
-        #expect(menu.items.filter { !$0.isSeparatorItem }.map(\.title) == ["About Kapp", "Preferences…", "Open Video…", "Quit Kapp"].map { tr($0) })
+        #expect(menu.items.filter { !$0.isSeparatorItem }.map(\.title) == ["About Kapp", "Check for Updates…", "Preferences…", "Open Video…", "Quit Kapp"].map { tr($0) })
         #expect(menu.items.first { $0.title == tr("Preferences…") }?.keyEquivalent == ",")
         #expect(menu.items.first { $0.title == tr("Open Video…") }?.keyEquivalent == "o")
     }
@@ -20,5 +20,12 @@ struct AppMenuTests {
         #expect(shortcut.displayName == "⇧⌘5")
         #expect(shortcut.isValid)
         #expect(!KeyboardShortcut(keyCode: 0, modifiers: UInt32(shiftKey), key: "A").isValid)
+    }
+
+    @Test func confirmedUpdatesInstallAndRelaunchWithoutASecondPrompt() {
+        let driver = UpdateUserDriver(hostBundle: .main, delegate: nil)
+        var didInstall = false
+        driver.showReady(toInstallAndRelaunch: { didInstall = $0 == .install })
+        #expect(didInstall)
     }
 }

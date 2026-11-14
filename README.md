@@ -19,7 +19,7 @@ A native macOS screen recorder with area, window, and full-screen capture, a sim
 - **Audio:** Record system audio, your microphone, or both. Include or hide the mouse cursor.
 - **Controls:** Start or stop with a configurable shortcut, initially `⌘⇧5`. Option-click the recording menu bar icon to pause; click it while paused to resume.
 - **Trim:** Preview your recording and drag either endpoint to keep the part you need. Hover over the timeline to preview frames.
-- **Export:** Choose MP4 or GIF, adjust dimensions and frame rate, then save to disk or copy to the clipboard. Original recordings are kept locally.
+- **Export:** Choose MP4 or GIF, adjust dimensions and frame rate, and follow conversion progress. Save to disk or copy to the clipboard.
 - **Languages:** English, Simplified Chinese, Traditional Chinese, Japanese, and Korean. Choose a language in Preferences or follow macOS, with English as the fallback.
 
 ## Get started
@@ -33,6 +33,8 @@ Launch Kapp, then click its menu bar icon or press `⌘⇧5` to select an area. 
 In the editor, drag the two timeline handles to trim, choose an output format and destination, then click **Convert**. Original recordings are kept in `~/Movies/Kapp` while editing and deleted when their editor closes, with a final cleanup when Kapp quits. Exported files and videos opened with **Open Video…** or `⌘O` are kept.
 
 Open **Preferences…** from the menu bar's context menu, the capture toolbar's More menu, or `⌘,`. Set the recording shortcut, cursor visibility, click highlighting, microphone and input device, system audio, capture frame rate, and launch at login. Preferences are saved automatically; capture changes apply to the next recording. The default export folder starts on Desktop. Choose another folder in Preferences to change it; saving an individual export elsewhere leaves that default unchanged.
+
+Choose **Check for Updates…** from the menu to check GitHub Releases. Confirm an update to download, install, and relaunch Kapp without opening a browser or installer.
 
 ## Development
 
