@@ -147,7 +147,7 @@ final class AppSettings {
 
     func setStartAtLogin(_ value: Bool) {
         do { try loginItem.setEnabled(value) }
-        catch { errorMessage = tr("Could not update Start automatically. %@", error.localizedDescription) }
+        catch { errorMessage = tr("Could not update login settings. %@", error.localizedDescription) }
         refreshLoginStatus()
     }
 }

@@ -18,14 +18,14 @@ struct PreferencesView: View {
                     }
                 }
                 row("Show cursor") { toggle($settings.showCursor) }
-                row("Highlight clicks", nested: true) {
+                row("Show click effects", nested: true) {
                     toggle($settings.highlightClicks).disabled(!settings.showCursor)
                 }
                 row("Keyboard shortcuts") {
                     toggle(Binding(get: { settings.shortcutsEnabled }, set: { settings.setShortcutsEnabled($0) }))
                 }
                 if settings.shortcutsEnabled {
-                    row("Toggle Kapp", nested: true) {
+                    row("Recording shortcut", nested: true) {
                         ShortcutRecorder(settings: settings).frame(width: 160, height: 24)
                     }
                 }
@@ -45,7 +45,7 @@ struct PreferencesView: View {
                         settings.captureFrameRate = $0 == 0 ? 30 : 60
                     }
                 }
-                row("Start automatically") {
+                row("Launch at login") {
                     toggle(Binding(get: { settings.startAtLogin }, set: { settings.setStartAtLogin($0) }))
                 }
                 if settings.loginRequiresApproval {
@@ -56,7 +56,7 @@ struct PreferencesView: View {
                 }
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(tr("Save to…")).fontWeight(.medium)
+                        Text(tr("Export location")).fontWeight(.medium)
                         Text((settings.exportDirectory.path as NSString).abbreviatingWithTildeInPath)
                             .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                             .help(settings.exportDirectory.path)
